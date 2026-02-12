@@ -1,0 +1,267 @@
+/* --- Profile Page - Professional Clean Theme --- */
+
+/* Hero Section */
+.profile-cover-image {
+    height: 160px;
+    background: linear-gradient(to right, #f8f9fa, #e9ecef); /* Subtle gray gradient */
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    position: relative;
+    margin-bottom: 0; 
+}
+
+/* Avatar Styling - Clean & Standard */
+.profile-avatar-wrapper {
+    margin-top: -50px; /* Slight overlap */
+    margin-left: 2rem;
+    position: relative;
+    display: inline-block;
+    z-index: 10;
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border: 4px solid #fff;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%; /* Circle */
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--primary-600);
+}
+
+.profile-status-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background-color: var(--success);
+    border: 3px solid #fff;
+    border-radius: 50%;
+}
+
+/* Info Cards - Flat & Professional */
+.profile-card {
+    border-radius: var(--radius-md); /* Standard radius */
+    overflow: hidden;
+    height: 100%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.profile-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+/* Detail Rows - Simple List */
+.profile-detail-item {
+    display: flex;
+    align-items: center; /* Center align */
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--gray-50);
+    transition: all 0.2s ease;
+}
+
+.profile-detail-item:hover {
+    background-color: var(--gray-50);
+}
+
+.profile-detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-icon-box {
+    width: 36px;
+    height: 36px;
+    background-color: var(--gray-50); /* Neutral background */
+    color: var(--gray-600);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+/* No hover rotation/scale */
+
+.detail-content {
+    flex-grow: 1;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    margin-bottom: 0;
+    display: block;
+}
+
+.detail-value {
+    font-size: 0.95rem;
+    color: var(--gray-900);
+    font-weight: 500;
+}
+
+.detail-value-empty {
+    color: var(--gray-400);
+    font-style: normal;
+    font-size: 0.9rem;
+}
+
+/* Tags - Simple Badges */
+.profile-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px; /* Sqaure-ish radius */
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+/* Photo Upload & Badges */
+.profile-avatar-edit-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-photo-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 32px;
+    height: 32px;
+    background: var(--primary-500);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid white;
+    transition: all 0.2s ease;
+    z-index: 20;
+}
+
+.profile-avatar-edit-wrapper:hover .profile-photo-badge {
+    transform: scale(1.1);
+    background: var(--primary-600);
+}
+
+/* Categorized Tag Blocks */
+.tag-input-wrapper {
+    background: var(--gray-50);
+    border-radius: 12px;
+    padding: 2px;
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.tag-input-wrapper:focus-within {
+    border-color: var(--primary-300);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--primary-50);
+}
+
+.tag-input-wrapper input {
+    font-size: 0.85rem;
+    padding-left: 1rem;
+}
+
+.badge.bg-light.border {
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+}
+
+.badge.bg-light.border:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+
+/* Soft Badges */
+.bg-soft-success {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    color: #198754 !important;
+}
+
+.bg-soft-primary {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    color: #0d6efd !important;
+}
+
+.bg-soft-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    color: #ffc107 !important;
+}
+
+/* Progress Bar Customization */
+.progress {
+    background-color: var(--gray-100);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--primary-400), var(--primary-600));
+    box-shadow: 0 2px 4px rgba(var(--primary-rgb), 0.2);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lh-lg {
+    line-height: 1.8 !important;
+}
+
+.sticky-sidebar {
+    position: sticky;
+    top: 2rem;
+    height: fit-content;
+}
+
+@media (max-width: 991px) {
+    .sticky-sidebar {
+        position: relative;
+        top: 0;
+    }
+}
+
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.resume-upload-zone {
+    border: 2px dashed var(--gray-200) !important;
+    transition: all 0.2s ease;
+}
+
+.resume-upload-zone:hover {
+    border-color: var(--primary-400) !important;
+    background-color: var(--primary-50) !important;
+}
