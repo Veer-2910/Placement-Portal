@@ -3,9 +3,12 @@ const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const path = require("path");
 const Faculty = require("../models/Faculty");
+const OTP = require("../models/OTP");
 const Resource = require("../models/Resource");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/authMiddleware");
+const rateLimit = require("express-rate-limit");
+const { sendOTP } = require("../utils/emailService");
 
 const router = express.Router();
 
@@ -57,6 +60,169 @@ const uploadProfile = multer({
   },
 });
 
+// Rate limiter for OTP endpoints (max 3 requests per 10 minutes)
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 3,
+  message: "Too many OTP requests. Please try again after 10 minutes.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Generate 6-digit OTP
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// ========================================
+// OTP ENDPOINTS FOR FACULTY ACTIVATION
+// ========================================
+
+// Send OTP for faculty email verification
+router.post("/send-activation-otp", otpLimiter, async (req, res) => {
+  const { email, employeeId } = req.body;
+
+  if (!email || !employeeId) {
+    return res.status(400).json({
+      message: "Email and employee ID are required",
+    });
+  }
+
+  try {
+    const emailNorm = String(email).trim().toLowerCase();
+    const trimmedId = String(employeeId).trim();
+    const numericId = parseInt(trimmedId);
+
+    const employeeIdConditions = [
+      { employeeId: trimmedId },
+      { employeeId: numericId },
+      { staffId: trimmedId },
+      { facultyId: trimmedId },
+    ];
+
+    // Check if faculty exists
+    const faculty = await Faculty.findOne({
+      $and: [
+        {
+          $or: employeeIdConditions,
+        },
+        {
+          $or: [
+            { universityEmail: emailNorm },
+            { email: emailNorm },
+            { officialEmail: emailNorm },
+          ],
+        },
+      ],
+    });
+
+    if (!faculty) {
+      return res.status(404).json({
+        message: "No faculty found with provided email and ID. Please verify your details.",
+      });
+    }
+
+    // Check if password already set
+    if (faculty.password && faculty.password.length > 0) {
+      return res.status(400).json({
+        message: "Password is already set for this account. Please login instead.",
+      });
+    }
+
+    // Generate and save OTP
+    const otp = generateOTP();
+    const hashedOTP = await bcrypt.hash(otp, 10);
+
+    await OTP.deleteMany({ email: emailNorm });
+    await OTP.create({
+      email: emailNorm,
+      otp: hashedOTP,
+      attempts: 0,
+    });
+
+    // Send OTP email
+    await sendOTP(email, otp);
+
+    return res.json({
+      message: "OTP sent successfully to your email. Valid for 5 minutes.",
+      email: emailNorm,
+    });
+  } catch (error) {
+    console.error("Faculty send OTP error:", error);
+    
+    if (error.message && error.message.includes("Email")) {
+      return res.status(500).json({
+        message: "Failed to send email. Please check your email configuration.",
+      });
+    }
+    
+    return res.status(500).json({
+      message: "Failed to send OTP. Please try again.",
+    });
+  }
+});
+
+// Verify OTP for faculty
+router.post("/verify-activation-otp", async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({
+      message: "Email and OTP are required",
+    });
+  }
+
+  try {
+    const emailNorm = String(email).trim().toLowerCase();
+
+    const otpRecord = await OTP.findOne({ email: emailNorm });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP. Please request a new one.",
+      });
+    }
+
+    if (otpRecord.attempts >= 5) {
+      await OTP.deleteOne({ email: emailNorm });
+      return res.status(400).json({
+        message: "Too many failed attempts. Please request a new OTP.",
+      });
+    }
+
+    const isValid = await bcrypt.compare(otp, otpRecord.otp);
+
+    if (!isValid) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+
+      return res.status(400).json({
+        message: `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`,
+      });
+    }
+
+    // Generate verification token
+    const verificationToken = jwt.sign(
+      { email: emailNorm, type: "otp-verified" },
+      process.env.JWT_SECRET,
+      { expiresIn: "10m" }
+    );
+
+    await OTP.deleteOne({ email: emailNorm });
+
+    return res.json({
+      message: "Email verified successfully",
+      verified: true,
+      verificationToken,
+    });
+  } catch (error) {
+    console.error("Faculty verify OTP error:", error);
+    return res.status(500).json({
+      message: "Failed to verify OTP. Please try again.",
+    });
+  }
+});
+
 // Public signup is disabled. All faculty are pre-created by the institute.
 router.post("/register", (req, res) => {
   return res.status(403).json({
@@ -65,10 +231,10 @@ router.post("/register", (req, res) => {
 });
 
 // First-time password setup for existing faculty
-// Expects: { email, employeeId, password }
+// Expects: { email, employeeId, password, verificationToken }
 router.post("/activate", async (req, res) => {
   try {
-    const { email, employeeId, password } = req.body;
+    const { email, employeeId, password, verificationToken } = req.body;
 
     if (!email || !employeeId || !password) {
       return res
@@ -76,9 +242,40 @@ router.post("/activate", async (req, res) => {
         .json({ message: "Email, employee ID and password are required" });
     }
 
+    // Verify OTP token
+    if (!verificationToken) {
+      return res.status(400).json({
+        message: "Email verification required. Please verify your email first.",
+      });
+    }
+
+    // Verify the verification token
+    let decoded;
+    try {
+      decoded = jwt.verify(verificationToken, process.env.JWT_SECRET);
+    } catch (jwtError) {
+      return res.status(400).json({
+        message: "Invalid or expired verification token.",
+      });
+    }
+    
+    if (decoded.type !== "otp-verified") {
+      return res.status(400).json({
+        message: "Invalid verification token.",
+      });
+    }
+
+    const emailNorm = String(email).trim().toLowerCase();
+    
+    // Ensure the email matches the verified email
+    if (decoded.email !== emailNorm) {
+      return res.status(400).json({
+        message: "Email mismatch. Please verify the correct email.",
+      });
+    }
+
     const trimmedId = String(employeeId).trim();
     const numericId = parseInt(trimmedId);
-    const emailNorm = String(email).trim().toLowerCase();
 
     // Create search conditions for employeeId that handle both string and numeric types
     const employeeIdConditions = [
