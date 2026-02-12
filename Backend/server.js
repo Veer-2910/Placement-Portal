@@ -18,6 +18,7 @@ const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const adminManagementRoutes = require("./routes/adminManagementRoutes");
 const aptitudeResultRoutes = require("./routes/aptitudeResults");
 const stageManagementRoutes = require("./routes/stageManagement");
+const placementRoutes = require("./routes/placements");
 
 const app = express();
 
@@ -65,6 +66,9 @@ app.use("/api/admin", adminManagementRoutes);
 // Stage-Based Recruitment Routes
 app.use("/api/aptitude-results", aptitudeResultRoutes);
 app.use("/api/stages", stageManagementRoutes);
+
+// Placement Analytics Routes
+app.use("/api/placements", placementRoutes);
 
 app.use("/uploads", express.static("uploads"));
 

@@ -10,6 +10,7 @@ import {
   Building,
   BoxArrowRight,
   CalendarWeek,
+  BarChart,
 } from "react-bootstrap-icons";
 
 export default function EmployerSidebar({
@@ -45,6 +46,13 @@ export default function EmployerSidebar({
       label: "Interviews",
       to: "/employer/interviews",
       icon: CalendarWeek,
+    },
+
+    {
+      key: "analytics",
+      label: "Placement Analytics",
+      to: "/employer/analytics",
+      icon: BarChart,
     },
 
     {

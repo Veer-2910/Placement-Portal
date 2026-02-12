@@ -976,12 +976,10 @@ export default function FacultyPlacementDrives({ user }) {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-top">
-                  <button
-                    className="btn btn-blue-500 w-100 py-3 rounded-3 fw-bold shadow-lg d-flex align-items-center justify-content-center gap-2"
-                    onClick={() => handleEdit(selectedDrive)}
-                  >
-                    <Edit2 size={20} /> Edit Drive
-                  </button>
+                  <div className="alert alert-info mb-0">
+                    <Info size={18} className="me-2" />
+                    <strong>Read-Only Access:</strong> Faculty can view and export data but cannot modify drives.
+                  </div>
                 </div>
               </div>
             </div>

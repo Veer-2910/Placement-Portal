@@ -1,7 +1,7 @@
 "use client";
 
 import { NavLink } from "react-router-dom";
-import { HouseDoor, Folder, List, Bell, Calendar } from "react-bootstrap-icons";
+import { HouseDoor, Folder, Bell, Calendar, BarChart } from "react-bootstrap-icons";
 import { useNotifications } from "../../contexts/NotificationContext";
 
 export default function StudentSidebar({
@@ -30,10 +30,10 @@ export default function StudentSidebar({
       icon: Folder,
     },
     {
-      key: "drive-results",
-      label: "Drive Results",
-      to: "/student-dashboard/drive-results",
-      icon: List,
+      key: "analytics",
+      label: "Placement Analytics",
+      to: "/student-dashboard/analytics",
+      icon: BarChart,
     },
     {
       key: "resources",

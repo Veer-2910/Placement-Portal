@@ -2,6 +2,21 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { Modal, Button } from "react-bootstrap";
+import { 
+  Megaphone, 
+  Search, 
+  Filter, 
+  Download, 
+  Eye, 
+  Calendar, 
+  User, 
+  CheckCircle2, 
+  X,
+  FileText,
+  AlertCircle,
+  Clock
+} from "lucide-react";
+import Skeleton from "../../components/ui/Skeleton";
 
 export default function StudentAnnouncements({ user }) {
   const { showNotification, unreadCount, setUnreadCount } = useNotifications();
@@ -29,8 +44,7 @@ export default function StudentAnnouncements({ user }) {
       try {
         setLoading(true);
         const token = sessionStorage.getItem("token");
-
-        const response = await axios.get("/api/announcements", {
+        const response = await axios.get("http://localhost:5000/api/announcements", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -47,18 +61,14 @@ export default function StudentAnnouncements({ user }) {
     const fetchFilters = async () => {
       try {
         const token = sessionStorage.getItem("token");
-
-        const response = await axios.get("/api/announcements/filters", {
+        const response = await axios.get("http://localhost:5000/api/announcements/filters", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         setAvailableFilters(response.data);
       } catch (err) {
         console.error("Error fetching filters:", err);
       }
     };
-
-    // Removed duplicate function - unreadCount is now managed by NotificationContext
 
     if (user) {
       fetchAnnouncements();
@@ -75,19 +85,15 @@ export default function StudentAnnouncements({ user }) {
 
         // Build query string from filters
         const queryParams = new URLSearchParams();
-        if (filters.department)
-          queryParams.append("department", filters.department);
-        if (filters.institute)
-          queryParams.append("institute", filters.institute);
+        if (filters.department) queryParams.append("department", filters.department);
+        if (filters.institute) queryParams.append("institute", filters.institute);
         if (filters.category) queryParams.append("category", filters.category);
         if (filters.search) queryParams.append("search", filters.search);
 
         const queryString = queryParams.toString();
         const response = await axios.get(
-          `/api/announcements${queryString ? `?${queryString}` : ""}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          `http://localhost:5000/api/announcements${queryString ? `?${queryString}` : ""}`,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         setAnnouncements(response.data);
@@ -114,6 +120,7 @@ export default function StudentAnnouncements({ user }) {
       department: "",
       institute: "",
       category: "",
+      search: "",
     });
   };
 
@@ -144,12 +151,18 @@ export default function StudentAnnouncements({ user }) {
   const markAsRead = async (announcementId) => {
     try {
       const token = sessionStorage.getItem("token");
-      await axios.get(`/api/announcements/${announcementId}/mark-as-read`, {
+      await axios.get(`http://localhost:5000/api/announcements/${announcementId}/mark-as-read`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       // Update unread count
       setUnreadCount((prev) => Math.max(0, prev - 1));
+      
+      // Update local state to reflect read status
+      setAnnouncements(prev => prev.map(a => 
+        a._id === announcementId 
+          ? { ...a, readBy: [...(a.readBy || []), user._id] } 
+          : a
+      ));
     } catch (err) {
       console.error("Error marking announcement as read:", err);
     }
@@ -163,220 +176,183 @@ export default function StudentAnnouncements({ user }) {
     }
   };
 
+  const getCategoryBadgeClass = (category) => {
+    switch(category) {
+      case 'Urgent': return 'bg-danger-subtle text-danger border border-danger-subtle';
+      case 'Deadline': return 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+      case 'Event': return 'bg-info-subtle text-info-emphasis border border-info-subtle';
+      case 'Notice': return 'bg-primary-subtle text-primary border border-primary-subtle';
+      default: return 'bg-secondary-subtle text-secondary border border-secondary-subtle';
+    }
+  };
+
   return (
-    <div className="dash-container">
+    <div className="dash-container bg-transparent p-0 border-0">
       <div className="dash-hero mb-4 p-4 p-lg-5 rounded-4 border border-white position-relative overflow-hidden"
            style={{ 
-             background: "linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)", 
+             background: "linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%)", 
              backdropFilter: "blur(20px)",
              boxShadow: "0 8px 32px 0 rgba(14, 165, 233, 0.1)"
            }}>
-        <div>
-          <p className="dash-eyebrow text-primary fw-bold mb-2">ANNOUNCEMENTS</p>
-          <h2 className="dash-title display-6 fw-bold text-dark mb-2">Important Updates</h2>
-          <p className="dash-subtitle text-secondary fs-5 mb-0">
-            Stay informed with the latest announcements from faculty
+        <div className="position-relative z-1">
+          <p className="dash-eyebrow text-primary fw-bold tracking-wide mb-2 text-uppercase small">Updates</p>
+          <h1 className="dash-title display-6 fw-bold text-dark mb-2">Announcements</h1>
+          <p className="text-secondary fs-5 mb-0" style={{maxWidth: '600px'}}>
+            Stay informed with the latest updates, notices, and events from the faculty.
           </p>
         </div>
+        
         {unreadCount > 0 && (
-          <div className="mt-3">
-            <span className="badge bg-danger rounded-pill px-3 py-2 shadow-sm border border-light">
-              {unreadCount} unread{" "}
-              {unreadCount === 1 ? "announcement" : "announcements"}
-            </span>
+          <div className="position-absolute top-0 end-0 m-4 animate-bounce-in">
+             <span className="badge bg-danger rounded-pill px-3 py-2 shadow-sm border border-white d-flex align-items-center gap-2">
+               <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+               {unreadCount} New
+             </span>
           </div>
         )}
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && (
+        <div className="alert alert-danger border-0 shadow-sm rounded-4 mb-4 p-3 d-flex align-items-center gap-3">
+          <AlertCircle size={20} /> {error}
+        </div>
+      )}
 
       {/* Filter Controls */}
-      <div className="dash-card mb-4">
-        <div className="row g-3">
-          <div className="col-md-4">
-            <label className="form-label">Filter by Department</label>
-            <select
-              className="form-control"
-              value={filters.department}
-              onChange={(e) => handleFilterChange("department", e.target.value)}
-            >
-              <option value="">All Departments</option>
-              {availableFilters.departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div className="card-body p-4 bg-white">
+           <div className="row g-3">
+             <div className="col-lg-3 col-md-6">
+                <div className="form-group">
+                   <label className="form-label small fw-bold text-uppercase text-secondary">Department</label>
+                   <select
+                     className="form-select bg-light border-0"
+                     value={filters.department}
+                     onChange={(e) => handleFilterChange("department", e.target.value)}
+                   >
+                     <option value="">All Departments</option>
+                     {availableFilters.departments.map((dept) => (
+                       <option key={dept} value={dept}>{dept}</option>
+                     ))}
+                   </select>
+                </div>
+             </div>
+             
+             <div className="col-lg-3 col-md-6">
+                <div className="form-group">
+                   <label className="form-label small fw-bold text-uppercase text-secondary">Category</label>
+                   <select
+                     className="form-select bg-light border-0"
+                     value={filters.category}
+                     onChange={(e) => handleFilterChange("category", e.target.value)}
+                   >
+                     <option value="">All Categories</option>
+                     {['General', 'Urgent', 'Deadline', 'Event', 'Notice'].map(cat => (
+                       <option key={cat} value={cat}>{cat}</option>
+                     ))}
+                   </select>
+                </div>
+             </div>
 
-          <div className="col-md-4">
-            <label className="form-label">Filter by Institute</label>
-            <select
-              className="form-control"
-              value={filters.institute}
-              onChange={(e) => handleFilterChange("institute", e.target.value)}
-            >
-              <option value="">All Institutes</option>
-              {availableFilters.institutes.map((inst) => (
-                <option key={inst} value={inst}>
-                  {inst}
-                </option>
-              ))}
-            </select>
-          </div>
+             <div className="col-lg-4 col-md-8">
+                <div className="form-group">
+                   <label className="form-label small fw-bold text-uppercase text-secondary">Search</label>
+                   <div className="input-group">
+                      <span className="input-group-text bg-light border-0 text-secondary"><Search size={18} /></span>
+                      <input
+                        type="text"
+                        className="form-control bg-light border-0"
+                        placeholder="Search by title..."
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange("search", e.target.value)}
+                      />
+                      {filters.search && (
+                        <button className="btn btn-light border-0" onClick={() => handleFilterChange("search", "")}>
+                          <X size={16} />
+                        </button>
+                      )}
+                   </div>
+                </div>
+             </div>
 
-          <div className="col-md-3">
-            <label className="form-label">Filter by Category</label>
-            <select
-              className="form-control"
-              value={filters.category}
-              onChange={(e) => handleFilterChange("category", e.target.value)}
-            >
-              <option value="">All Categories</option>
-              <option value="General">General</option>
-              <option value="Urgent">Urgent</option>
-              <option value="Deadline">Deadline</option>
-              <option value="Event">Event</option>
-              <option value="Notice">Notice</option>
-            </select>
-          </div>
-
-          <div className="col-md-4">
-            <label className="form-label">Search Announcements</label>
-            <div className="input-group">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search by title, description, or category..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange("search", e.target.value)}
-              />
-              {filters.search && (
+             <div className="col-lg-2 col-md-4 d-flex align-items-end">
                 <button
-                  className="btn btn-outline-secondary"
-                  type="button"
-                  onClick={() => handleFilterChange("search", "")}
+                  className="btn btn-outline-secondary w-100 border-2 fw-medium"
+                  onClick={clearFilters}
+                  disabled={!Object.values(filters).some(f => f)}
                 >
-                  ×
+                  Clear Filters
                 </button>
-              )}
-            </div>
-          </div>
-
-          <div className="col-md-1 d-flex align-items-end">
-            <button
-              className="btn btn-outline-secondary w-100"
-              onClick={clearFilters}
-              title="Clear filters"
-            >
-              Clear
-            </button>
-          </div>
+             </div>
+           </div>
         </div>
-
-        {Object.values(filters).some((filter) => filter) && (
-          <div className="mt-3">
-            <small className="text-muted">
-              Showing {announcements.length} announcement
-              {announcements.length !== 1 ? "s" : ""}
-              {filters.department && <span> in {filters.department}</span>}
-              {filters.institute && <span> at {filters.institute}</span>}
-              {filters.category && <span> in {filters.category}</span>}
-              {filters.search && <span> matching "{filters.search}"</span>}
-            </small>
-          </div>
-        )}
       </div>
 
       {loading ? (
-        <div className="text-center py-4">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+        <div className="row g-4">
+           {[1,2,3].map(i => <div key={i} className="col-12"><Skeleton height="160px" borderRadius="16px" /></div>)}
         </div>
       ) : announcements.length === 0 ? (
-        <div className="dash-card text-center py-5">
-          <h5>No announcements available</h5>
-          <p className="text-muted">
-            Check back later for updates from faculty.
-          </p>
+        <div className="text-center py-5 card rounded-4 border-0 shadow-sm p-5">
+           <div className="bg-light rounded-circle d-inline-flex p-4 mb-3 border border-light-subtle">
+             <Megaphone size={48} className="text-secondary" />
+           </div>
+           <h4 className="fw-bold text-dark mb-2">No Announcements</h4>
+           <p className="text-secondary mb-0">Check back later for important updates.</p>
         </div>
       ) : (
-        <div className="row">
+        <div className="row g-4">
           {announcements.map((announcement) => (
-            <div key={announcement._id} className="col-12 mb-4">
-              <div className="dash-card">
-                <div className="d-flex justify-content-between align-items-start mb-3">
-                  <div>
-                    <h5 className="mb-1">{announcement.title}</h5>
-                    <p className="text-muted mb-2">
-                      {announcement.description.length > 150
-                        ? announcement.description.substring(0, 150) + "..."
-                        : announcement.description}
-                    </p>
-                    <div className="small text-muted">
-                      <strong>Posted by:</strong> {announcement.uploadedByName}
-                      {}• {announcement.department}
+            <div key={announcement._id} className="col-12">
+              <div 
+                className={`card border-0 shadow-sm rounded-4 overflow-hidden transition-all hover-lift ${!announcement.readBy?.includes(user._id) ? 'border-start border-4 border-primary' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleView(announcement)}
+              >
+                <div className="card-body p-4">
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+                    <div className="d-flex gap-3 align-items-start">
+                       <div className={`p-3 rounded-3 flex-shrink-0 ${!announcement.readBy?.includes(user._id) ? 'bg-primary-subtle text-primary' : 'bg-light text-secondary'}`}>
+                          <Megaphone size={24} />
+                       </div>
+                       <div>
+                          <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                             <h5 className="fw-bold text-dark mb-0">{announcement.title}</h5>
+                             {!announcement.readBy?.includes(user._id) && (
+                               <span className="badge bg-danger rounded-pill px-2 py-1 small">New</span>
+                             )}
+                             <span className={`badge rounded-pill fw-medium px-2 py-1 ${getCategoryBadgeClass(announcement.category || 'General')}`}>
+                               {announcement.category || 'General'}
+                             </span>
+                          </div>
+                          <p className="text-secondary mb-3 lh-base">
+                            {announcement.description.length > 200 
+                              ? announcement.description.substring(0, 200) + "..." 
+                              : announcement.description}
+                          </p>
+                          
+                          <div className="d-flex flex-wrap gap-4 text-secondary small align-items-center">
+                             <span className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                               <User size={14} /> {announcement.uploadedByName}
+                             </span>
+                             <span className="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                               <Calendar size={14} /> {formatDate(announcement.createdAt)}
+                             </span>
+                             {announcement.filePath && (
+                               <span className="d-flex align-items-center gap-1 text-primary fw-medium bg-primary-subtle px-2 py-1 rounded">
+                                 <FileText size={14} /> Attachment
+                               </span>
+                             )}
+                          </div>
+                       </div>
                     </div>
-                    <div className="mt-1">
-                      <span
-                        className={`badge ${
-                          (announcement.category || "General") === "Urgent"
-                            ? "bg-danger"
-                            : (announcement.category || "General") ===
-                              "Deadline"
-                            ? "bg-warning text-dark"
-                            : (announcement.category || "General") === "Event"
-                            ? "bg-info"
-                            : (announcement.category || "General") === "Notice"
-                            ? "bg-primary"
-                            : "bg-secondary"
-                        }`}
-                      >
-                        {announcement.category || "General"}
-                      </span>
+                    
+                    <div className="d-flex flex-column align-items-end gap-2 flex-shrink-0 ms-auto">
+                       <button className="btn btn-light btn-sm rounded-pill px-3 fw-medium text-primary hover-bg-primary hover-text-white transition-colors">
+                          View Details
+                       </button>
                     </div>
-                    {announcement.filePath && (
-                      <div className="mt-2">
-                        <span className="badge bg-info">Document Attached</span>
-                      </div>
-                    )}
                   </div>
-                  {!announcement.readBy?.includes(user._id) && (
-                    <span className="badge bg-danger">NEW</span>
-                  )}
-                </div>
-                <div className="mt-2 small text-muted">
-                  Posted on: {formatDate(announcement.createdAt)}
-                </div>
-                <div className="mt-3">
-                  <button
-                    className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() => handleView(announcement)}
-                  >
-                    View Announcement
-                  </button>
-                  {announcement.filePath && (
-                    <button
-                      className="btn btn-sm btn-info"
-                      onClick={() => {
-                        // Automatically mark as read when downloading document
-                        if (!announcement.readBy?.includes(user._id)) {
-                          markAsRead(announcement._id);
-                        }
-                        // Create a download link for the file
-                        const link = document.createElement("a");
-                        link.href = `http://localhost:5000/${announcement.filePath}`;
-                        link.download =
-                          announcement.fileName || "announcement-document";
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      }}
-                    >
-                      Download Document
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -385,62 +361,80 @@ export default function StudentAnnouncements({ user }) {
       )}
 
       {/* View Announcement Modal */}
-      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{selectedAnnouncement?.title}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3 d-flex justify-content-between align-items-center">
-            <div>
-              <span
-                className={`badge ${
-                  (selectedAnnouncement?.category || "General") === "Urgent"
-                    ? "bg-danger"
-                    : (selectedAnnouncement?.category || "General") === "Deadline"
-                    ? "bg-warning text-dark"
-                    : (selectedAnnouncement?.category || "General") === "Event"
-                    ? "bg-info"
-                    : (selectedAnnouncement?.category || "General") === "Notice"
-                    ? "bg-primary"
-                    : "bg-secondary"
-                }`}
-              >
-                {selectedAnnouncement?.category || "General"}
+      <Modal 
+        show={showViewModal} 
+        onHide={() => setShowViewModal(false)} 
+        size="lg" 
+        centered
+        contentClassName="border-0 shadow-lg rounded-4 overflow-hidden"
+      >
+        <div className="modal-header border-bottom border-blue-100 p-4" style={{ background: "linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)" }}>
+           <div className="d-flex align-items-center gap-3 w-100">
+              <div className="bg-white border border-blue-100 p-2 rounded-circle shadow-sm text-primary">
+                 <Megaphone size={20} />
+              </div>
+              <div className="flex-grow-1">
+                 <h5 className="modal-title fw-bold text-dark mb-1">{selectedAnnouncement?.title}</h5>
+                 <div className="d-flex gap-2 align-items-center text-primary-emphasis small">
+                    <User size={14} /> {selectedAnnouncement?.uploadedByName}
+                    <span>•</span>
+                    <Clock size={14} /> {selectedAnnouncement && formatDate(selectedAnnouncement.createdAt)}
+                 </div>
+              </div>
+              <button className="btn-close opacity-50" onClick={() => setShowViewModal(false)}></button>
+           </div>
+        </div>
+        
+        <div className="modal-body p-4 p-lg-5" style={{ backgroundColor: "#f8fcff" }}>
+           <div className="mb-4">
+              <span className={`badge rounded-pill px-3 py-2 fw-medium ${getCategoryBadgeClass(selectedAnnouncement?.category || 'General')}`}>
+                 {selectedAnnouncement?.category || "General"}
               </span>
-              <span className="ms-2 text-muted small">
-                Posted by: {selectedAnnouncement?.uploadedByName} • {selectedAnnouncement?.department}
+              <span className="badge bg-white text-dark border border-blue-100 ms-2 rounded-pill px-3 py-2 shadow-sm">
+                 {selectedAnnouncement?.department || "All Departments"}
               </span>
-            </div>
-            <span className="text-muted small">
-              {selectedAnnouncement && formatDate(selectedAnnouncement.createdAt)}
-            </span>
-          </div>
-          <div className="announcement-content py-3">
-            <h6 className="fw-bold mb-3 border-bottom pb-2">Announcement Details:</h6>
-            <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{selectedAnnouncement?.description}</p>
-          </div>
-          {selectedAnnouncement?.filePath && (
-            <div className="mt-4 p-3 bg-light rounded-3 border">
-              <h6 className="fw-bold mb-2">Attached Document:</h6>
-              <div className="d-flex align-items-center justify-content-between">
-                <span className="text-truncate me-3">{selectedAnnouncement.fileName || "Document"}</span>
+           </div>
+           
+           <div className="bg-white rounded-4 p-4 border border-blue-100 mb-4 shadow-sm">
+              <p className="text-dark mb-0 leading-relaxed" style={{ whiteSpace: "pre-wrap", lineHeight: "1.8" }}>
+                 {selectedAnnouncement?.description}
+              </p>
+           </div>
+           
+           {selectedAnnouncement?.filePath && (
+             <div className="d-flex align-items-center justify-content-between bg-blue-50 rounded-3 p-3 border border-blue-100">
+                <div className="d-flex align-items-center gap-3">
+                   <div className="bg-white p-2 rounded-circle text-primary shadow-sm">
+                      <FileText size={20} />
+                   </div>
+                   <div>
+                      <h6 className="fw-bold text-dark mb-0">Attached Document</h6>
+                      <p className="small text-secondary mb-0">{selectedAnnouncement.fileName || "Download Attachment"}</p>
+                   </div>
+                </div>
                 <a
                   href={`http://localhost:5000/${selectedAnnouncement.filePath}`}
                   download={selectedAnnouncement.fileName || "attachment"}
-                  className="btn btn-info btn-sm"
+                  className="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm"
+                  onClick={(e) => {
+                     // Prevent modal close if inside link
+                     e.stopPropagation(); 
+                  }}
                 >
-                  Download Document
+                  <Download size={16} className="me-2" /> Download
                 </a>
-              </div>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowViewModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
+             </div>
+           )}
+        </div>
       </Modal>
+      
+      <style jsx>{`
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05) !important; }
+        .hover-bg-primary:hover { background-color: var(--bs-primary) !important; color: white !important; }
+        .bg-blue-50 { background-color: #eff6ff; }
+        .border-blue-100 { border-color: #dbeafe !important; }
+      `}</style>
     </div>
   );
 }

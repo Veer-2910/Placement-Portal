@@ -85,13 +85,13 @@ const ManageJobs = () => {
 
   return (
     <div className="container-fluid p-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
           <h2 className="fw-bold text-dark mb-1">Manage Jobs</h2>
-          <p className="text-secondary mb-0">View and manage your job postings</p>
+          <p className="text-secondary mb-0">View, track, and manage all your job postings</p>
         </div>
-        <Link to="/employer/jobs/new" className="btn btn-primary px-4">
-          + Post New Job
+        <Link to="/employer/jobs/new" className="btn px-4 py-2 d-flex align-items-center gap-2 shadow-sm" style={{ backgroundColor: '#0ea5e9', color: 'white', border: 'none' }}>
+          <span className="fs-5">+</span> Post New Job
         </Link>
       </div>
 
@@ -99,10 +99,13 @@ const ManageJobs = () => {
       <div className="row g-4">
         {jobs.length === 0 ? (
           <div className="col-12">
-            <div className="card border-0 shadow-sm rounded-4 text-center p-5">
+            <div className="card border-0 shadow-sm rounded-4 text-center p-5 bg-light">
+              <div className="mb-3 text-secondary opacity-50">
+                <span style={{ fontSize: '4rem' }}>💼</span>
+              </div>
               <h3 className="fw-bold text-dark mb-2">No jobs found</h3>
-              <p className="text-secondary mb-3">Start by posting your first job opportunity</p>
-              <Link to="/employer/jobs/new" className="btn btn-primary">
+              <p className="text-secondary mb-4">Start by posting your first job opportunity to find great talent.</p>
+              <Link to="/employer/jobs/new" className="btn px-4 py-2" style={{ backgroundColor: '#0ea5e9', color: 'white', border: 'none' }}>
                 Post Job
               </Link>
             </div>
@@ -110,85 +113,88 @@ const ManageJobs = () => {
         ) : (
           jobs.map((job) => (
             <div key={job._id} className="col-12">
-              <div className="card border-0 shadow-sm rounded-4 hover-lift">
+              <div className="card border-0 shadow-sm rounded-4 hover-lift transition-all overflow-hidden">
                 <div className="card-body p-4">
-                  <div className="d-flex justify-content-between align-items-start mb-3">
+                  <div className="d-flex justify-content-between align-items-start mb-4">
                     <div>
                       <h4 className="fw-bold text-dark mb-1">{job.title}</h4>
-                      <p className="text-secondary mb-0">{job.companyName}</p>
+                      <p className="text-secondary mb-0 fw-medium">{job.companyName}</p>
                     </div>
                     <div className="d-flex align-items-center gap-3">
                       {/* Drive Status Toggle */}
-                      <div className="d-flex align-items-center gap-2">
-                        <span className={`badge ${job.active ? 'bg-success' : 'bg-secondary'} px-3 py-2`}>
-                          {job.active ? '● Live' : '○ Stopped'}
-                        </span>
-                        <div className="form-check form-switch mb-0">
+                      <div className="d-flex align-items-center bg-light rounded-pill p-1 pe-3 border">
+                        <div className="form-check form-switch mb-0 ms-2">
                           <input
                             className="form-check-input"
                             type="checkbox"
                             role="switch"
                             checked={job.active}
                             onChange={() => handleToggleActive(job._id, job.active)}
-                            style={{ cursor: 'pointer', width: '3rem', height: '1.5rem' }}
+                            style={{ cursor: 'pointer', width: '2.5rem', height: '1.25rem' }}
                           />
                         </div>
+                        <span className={`ms-2 small fw-bold ${job.active ? 'text-success' : 'text-secondary'}`}>
+                          {job.active ? 'Live' : 'Stopped'}
+                        </span>
                       </div>
+                      
                       {job.stagesEnabled && (
-                        <span className="badge bg-primary rounded-pill px-3 py-2">
-                          Stage-Based Recruitment
+                        <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">
+                          Stage-Based
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="row g-3 mb-3 pb-3 border-bottom">
-                    <div className="col-md-3">
-                      <div className="d-flex align-items-center gap-2">
-                        <span>💼</span>
-                        <span className="text-secondary small">{job.jobType}</span>
+                  <div className="row g-3 mb-4">
+                    <div className="col-md-3 col-6">
+                      <div className="d-flex align-items-center gap-2 text-secondary">
+                        <span className="bg-light p-2 rounded-circle">💼</span>
+                        <span className="small fw-medium">{job.jobType}</span>
                       </div>
                     </div>
-                    <div className="col-md-3">
-                      <div className="d-flex align-items-center gap-2">
-                        <span>📍</span>
-                        <span className="text-secondary small">{job.location}</span>
+                    <div className="col-md-3 col-6">
+                      <div className="d-flex align-items-center gap-2 text-secondary">
+                        <span className="bg-light p-2 rounded-circle">📍</span>
+                        <span className="small fw-medium">{job.location}</span>
                       </div>
                     </div>
-                    <div className="col-md-3">
-                      <div className="d-flex align-items-center gap-2">
-                        <span>💰</span>
-                        <span className="text-secondary small">{job.ctc}</span>
+                    <div className="col-md-3 col-6">
+                      <div className="d-flex align-items-center gap-2 text-secondary">
+                        <span className="bg-light p-2 rounded-circle">💰</span>
+                        <span className="small fw-medium">{job.ctc}</span>
                       </div>
                     </div>
-                    <div className="col-md-3">
-                      <div className="d-flex align-items-center gap-2">
-                        <span>🏢</span>
-                        <span className="text-secondary small">{job.workMode}</span>
+                    <div className="col-md-3 col-6">
+                      <div className="d-flex align-items-center gap-2 text-secondary">
+                        <span className="bg-light p-2 rounded-circle">🏢</span>
+                        <span className="small fw-medium">{job.workMode}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="d-flex justify-content-between align-items-center mb-3 text-secondary small">
-                    <span>Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
-                    <span>Deadline: {new Date(job.endDate).toLocaleDateString()}</span>
-                  </div>
+                  <div className="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <div className="d-flex gap-4 text-secondary small">
+                      <span>Posted: <span className="fw-medium text-dark">{new Date(job.createdAt).toLocaleDateString()}</span></span>
+                      <span>Deadline: <span className="fw-medium text-danger">{new Date(job.endDate).toLocaleDateString()}</span></span>
+                    </div>
 
-                  <div className="d-flex gap-2 flex-wrap">
-                    <Link to={`/employer/jobs/${job._id}/applicants`} className="btn btn-primary btn-sm px-3">
-                      View Applicants
-                    </Link>
-                    {job.stagesEnabled && (
-                      <Link to={`/employer/jobs/${job._id}/upload-results`} className="btn btn-success btn-sm px-3">
-                        📊 Upload Results
+                    <div className="d-flex gap-2">
+                      <Link to={`/employer/jobs/${job._id}/applicants`} className="btn btn-sm px-3 py-2 rounded-3 shadow-sm" style={{ backgroundColor: '#0ea5e9', color: 'white', border: 'none' }}>
+                        View Applicants
                       </Link>
-                    )}
-                    <button onClick={() => navigate(`/employer/jobs/${job._id}/edit`)} className="btn btn-outline-secondary btn-sm px-3">
-                      Edit
-                    </button>
-                    <button onClick={() => handleDelete(job._id)} className="btn btn-outline-danger btn-sm px-3">
-                      Delete
-                    </button>
+                      {job.stagesEnabled && (
+                        <Link to={`/employer/jobs/${job._id}/upload-results`} className="btn btn-sm px-3 py-2 rounded-3 shadow-sm" style={{ backgroundColor: '#10b981', color: 'white', border: 'none' }}>
+                          Upload Results
+                        </Link>
+                      )}
+                      <button onClick={() => navigate(`/employer/jobs/${job._id}/edit`)} className="btn btn-sm px-3 py-2 rounded-3" style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none' }}>
+                        Edit
+                      </button>
+                      <button onClick={() => handleDelete(job._id)} className="btn btn-sm px-3 py-2 rounded-3" style={{ backgroundColor: '#ef4444', color: 'white', border: 'none' }}>
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -198,66 +204,20 @@ const ManageJobs = () => {
       </div>
 
       <style jsx>{`
-        .hover-lift {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .transition-all {
+          transition: all 0.2s ease-in-out;
         }
-
         .hover-lift:hover {
           transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
         }
-
         .btn-primary {
-          background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-          border: none;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          background-color: var(--color-primary-600);
+          border-color: var(--color-primary-600);
         }
-
         .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-        }
-
-        .btn-success {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          border: none;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .btn-success:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-outline-secondary {
-          border-color: #cbd5e1;
-          color: #64748b;
-          transition: all 0.2s ease;
-        }
-
-        .btn-outline-secondary:hover {
-          background-color: #f1f5f9;
-          border-color: #94a3b8;
-          color: #475569;
-          transform: translateY(-1px);
-        }
-
-        .btn-outline-danger {
-          border-color: #fecaca;
-          color: #dc2626;
-          transition: all 0.2s ease;
-        }
-
-        .btn-outline-danger:hover {
-          background-color: #fef2f2;
-          border-color: #f87171;
-          color: #b91c1c;
-          transform: translateY(-1px);
-        }
-
-        .badge {
-          font-weight: 600;
-          font-size: 0.75rem;
+          background-color: var(--color-primary-700);
+          border-color: var(--color-primary-700);
         }
       `}</style>
     </div>

@@ -39,7 +39,6 @@ const FacultyPlacementDrives = lazy(() =>
 const StudentPlacementDrives = lazy(() =>
   import("./pages/student/PlacementDrives.jsx")
 );
-const MyDriveResults = lazy(() => import("./pages/student/MyDriveResults.jsx"));
 const MyApplications = lazy(() => import("./pages/student/MyApplications.jsx"));
 const StudentManagement = lazy(() =>
   import("./pages/faculty/StudentManagement.jsx")
@@ -67,6 +66,7 @@ const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.jsx"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 const EmployerVerification = lazy(() => import("./pages/admin/EmployerVerification.jsx"));
 const JobApproval = lazy(() => import("./pages/admin/JobApproval.jsx"));
+const PlacementAnalytics = lazy(() => import("./pages/admin/PlacementAnalytics.jsx"));
 
 function App() {
   const [user, setUser] = useState(
@@ -125,6 +125,7 @@ function App() {
             path="drives"
             element={<FacultyPlacementDrives user={user} />}
           />
+          <Route path="analytics" element={<PlacementAnalytics />} />
         </Route>
         <Route
           path="/faculty/login"
@@ -148,12 +149,9 @@ function App() {
             element={<StudentAnnouncements user={user} />}
           />
           <Route path="applications" element={<MyApplications user={user} />} />
-          <Route
-            path="drives"
-            element={<StudentPlacementDrives user={user} />}
-          />
-          <Route path="drive-results" element={<MyDriveResults user={user} />} />
+          <Route path="drives" element={<StudentPlacementDrives user={user} />} />
           <Route path="jobs" element={<JobBoard user={user} />} />
+          <Route path="analytics" element={<PlacementAnalytics />} />
         </Route>
         <Route path="/student" element={<LoginPage setUser={setUser} />} />
         
@@ -181,6 +179,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/employers/verify" element={<EmployerVerification />} />
         <Route path="/admin/jobs/approve" element={<JobApproval />} />
+        <Route path="/admin/analytics" element={<PlacementAnalytics />} />
       </Routes>
     </Suspense>
   );

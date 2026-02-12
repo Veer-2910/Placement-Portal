@@ -509,7 +509,7 @@ exports.toggleDriveActive = async (req, res) => {
     }
     
     // Check if the employer owns this drive
-    if (drive.postedByEmployer.toString() !== req.employerId) {
+    if (drive.postedByEmployer.toString() !== req.employerId.toString()) {
       return res.status(403).json({ 
         success: false,
         message: "Access denied. You can only toggle your own drives." 

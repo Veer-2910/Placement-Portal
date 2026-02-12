@@ -7,7 +7,6 @@ export const calculateProfileStrength = (profile) => {
     if (!profile) return 0;
     
     // Define weights or simple count of essential fields
-    // Using a refined list to ensure consistency
     const essentialFields = [
         profile.fullName,
         profile.phone || profile.mobile,
@@ -28,9 +27,27 @@ export const calculateProfileStrength = (profile) => {
     return Math.round((filledFields / totalFields) * 100);
 };
 
-export const getStrengthTips = (strength) => {
-    if (strength === 100) return "Profile Perfected! Recruiters love a complete profile. You're set!";
-    if (strength > 70) return "Almost there! Add more projects or social links to stand out.";
-    if (strength > 30) return "Good progress! Adding a professional bio and resume will greatly help.";
-    return "Start strong! Add your skills, location, and a professional photo.";
+export const getStrengthTips = (profile) => {
+    if (!profile) return ["Complete your basic profile details"];
+    
+    // If passed a number (strength) instead of profile object, handle gracefully
+    if (typeof profile === 'number') {
+        if (profile === 100) return ["Profile Perfected!"];
+        if (profile > 70) return ["Add more projects", "Link social profiles"];
+        return ["Add skills", "Upload resume", "Add bio"];
+    }
+    
+    const tips = [];
+    
+    if (!profile.resume) tips.push("Upload your latest resume");
+    if (!profile.profilePicture) tips.push("Add a professional profile picture");
+    if (!profile.skills || profile.skills.length === 0) tips.push("Add your key technical skills");
+    if (!profile.projects || profile.projects.length === 0) tips.push("Showcase your projects");
+    if (!profile.socialLinks?.linkedin) tips.push("Link your LinkedIn profile");
+    if (!profile.socialLinks?.github) tips.push("Link your GitHub profile");
+    if (!profile.bio || profile.bio.length < 20) tips.push("Write a short professional bio");
+    if (!profile.location) tips.push("Add your current location");
+    
+    if (tips.length === 0) return ["Keep your profile updated!"];
+    return tips;
 };

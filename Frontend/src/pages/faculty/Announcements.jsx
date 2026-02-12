@@ -173,7 +173,7 @@ export default function FacultyAnnouncements({ user }) {
   };
 
   return (
-    <div className="dash-container">
+    <div className="dash-container bg-transparent p-0 border-0">
       <div className="dash-hero mb-4 p-4 p-lg-5 rounded-4 border border-white position-relative overflow-hidden"
            style={{ 
              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)", 
@@ -190,8 +190,9 @@ export default function FacultyAnnouncements({ user }) {
       </div>
 
       {/* Post Announcement Form */}
-      <div className="dash-card mb-4">
-        <h5 className="mb-3">Create Announcement</h5>
+      <div className="card border-0 shadow-sm rounded-4 mb-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-4">Create Announcement</h5>
         {error && <div className="alert alert-danger">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
 
@@ -274,28 +275,13 @@ export default function FacultyAnnouncements({ user }) {
             )}
           </div>
         </form>
-      </div>
-
-      <div className="dash-card">
-        <h5 className="mb-3">How to Use Announcements</h5>
-        <ul>
-          <li>
-            Use announcements for important updates, deadlines, or information
-          </li>
-          <li>Keep announcements clear and concise</li>
-          <li>Students will receive notifications for new announcements</li>
-          <li>
-            All announcements are visible to all students in your department
-          </li>
-          <li>
-            You can attach documents to your announcements for students to view
-          </li>
-        </ul>
+        </div>
       </div>
 
       {/* Display existing announcements */}
-      <div className="dash-card">
-        <h5 className="mb-3">Your Announcements</h5>
+      <div className="card border-0 shadow-sm rounded-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-4">Your Announcements</h5>
 
         {loading && announcements.length === 0 ? (
           <div className="text-center py-4">
@@ -377,6 +363,7 @@ export default function FacultyAnnouncements({ user }) {
             </table>
           </div>
         )}
+        </div>
       </div>
 
       {/* View Announcement Modal */}

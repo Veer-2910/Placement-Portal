@@ -8,6 +8,7 @@ import {
   Bell,
   People,
   Calendar,
+  BarChart,
 } from "react-bootstrap-icons";
 
 export default function FacultySidebar({
@@ -39,6 +40,12 @@ export default function FacultySidebar({
       label: "Placement Drives",
       to: "/faculty/drives",
       icon: Calendar,
+    },
+    {
+      key: "analytics",
+      label: "Placement Analytics",
+      to: "/faculty/analytics",
+      icon: BarChart,
     },
     {
       key: "announcements",

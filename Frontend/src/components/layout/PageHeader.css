@@ -1,0 +1,108 @@
+.page-header {
+  background-color: white;
+  border-bottom: 1px solid var(--color-neutral-200);
+  padding: var(--space-6) var(--space-8);
+  margin: 0 calc(-1 * var(--space-8));
+  margin-bottom: var(--space-6);
+}
+
+.page-header--sticky {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-header__breadcrumbs {
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.breadcrumbs__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.breadcrumbs__link {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-500);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.breadcrumbs__link:hover {
+  color: var(--color-primary-600);
+}
+
+.breadcrumbs__current {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-900);
+  font-weight: var(--font-weight-medium);
+}
+
+.breadcrumbs__separator {
+  color: var(--color-neutral-400);
+}
+
+.page-header__main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.page-header__text {
+  flex: 1;
+}
+
+.page-header__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--space-2) 0;
+  line-height: var(--line-height-tight);
+}
+
+.page-header__subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header {
+    padding: var(--space-4) var(--space-4);
+    margin: 0 calc(-1 * var(--space-4));
+    margin-bottom: var(--space-4);
+  }
+  
+  .page-header__main {
+    flex-direction: column;
+  }
+  
+  .page-header__actions {
+    width: 100%;
+  }
+  
+  .page-header__title {
+    font-size: var(--font-size-2xl);
+  }
+}
