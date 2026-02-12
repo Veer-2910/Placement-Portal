@@ -6,11 +6,10 @@ const ManageJobs = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     fetchJobs();
-  }, [filter]);
+  }, []);
 
   const fetchJobs = async () => {
     try {
@@ -20,12 +19,7 @@ const ManageJobs = () => {
         return;
       }
 
-      let url = "http://localhost:5000/api/employer/jobs";
-      if (filter !== "all") {
-        url += `?status=${filter}`;
-      }
-
-      const response = await axios.get(url, {
+      const response = await axios.get("http://localhost:5000/api/employer/jobs", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -58,14 +52,25 @@ const ManageJobs = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      Pending: { color: "#f59e0b", text: "Pending Approval" },
-      Approved: { color: "#10b981", text: "Approved" },
-      Rejected: { color: "#ef4444", text: "Rejected" }
-    };
-    const badge = badges[status] || badges.Pending;
-    return <span className="status-badge" style={{ background: badge.color }}>{badge.text}</span>;
+  const handleToggleActive = async (jobId, currentStatus) => {
+    const action = currentStatus ? "stop" : "start";
+    if (!confirm(`Are you sure you want to ${action} this drive? Students ${currentStatus ? "won't" : "will"} be able to apply.`)) return;
+
+    try {
+      const token = sessionStorage.getItem("employerToken");
+      const response = await axios.patch(
+        `http://localhost:5000/api/employer/jobs/${jobId}/toggle-active`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert(response.data.message);
+        fetchJobs(); // Refresh jobs list
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to toggle drive status");
+    }
   };
 
   if (loading) {
@@ -79,40 +84,15 @@ const ManageJobs = () => {
   }
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold text-dark mb-0">Manage Jobs</h2>
-        <Link to="/employer/jobs/new" className="btn btn-primary">
+        <div>
+          <h2 className="fw-bold text-dark mb-1">Manage Jobs</h2>
+          <p className="text-secondary mb-0">View and manage your job postings</p>
+        </div>
+        <Link to="/employer/jobs/new" className="btn btn-primary px-4">
           + Post New Job
         </Link>
-      </div>
-
-      {/* Filters */}
-      <div className="d-flex gap-2 mb-4 flex-wrap">
-        <button
-          className={`btn ${filter === "all" ? "btn-primary" : "btn-outline-primary"} rounded-pill`}
-          onClick={() => setFilter("all")}
-        >
-          All Jobs ({jobs.length})
-        </button>
-        <button
-          className={`btn ${filter === "Approved" ? "btn-success" : "btn-outline-success"} rounded-pill`}
-          onClick={() => setFilter("Approved")}
-        >
-          Approved
-        </button>
-        <button
-          className={`btn ${filter === "Pending" ? "btn-warning" : "btn-outline-warning"} rounded-pill`}
-          onClick={() => setFilter("Pending")}
-        >
-          Pending
-        </button>
-        <button
-          className={`btn ${filter === "Rejected" ? "btn-danger" : "btn-outline-danger"} rounded-pill`}
-          onClick={() => setFilter("Rejected")}
-        >
-          Rejected
-        </button>
       </div>
 
       {/* Jobs List */}
@@ -137,7 +117,29 @@ const ManageJobs = () => {
                       <h4 className="fw-bold text-dark mb-1">{job.title}</h4>
                       <p className="text-secondary mb-0">{job.companyName}</p>
                     </div>
-                    {getStatusBadge(job.approvalStatus)}
+                    <div className="d-flex align-items-center gap-3">
+                      {/* Drive Status Toggle */}
+                      <div className="d-flex align-items-center gap-2">
+                        <span className={`badge ${job.active ? 'bg-success' : 'bg-secondary'} px-3 py-2`}>
+                          {job.active ? '● Live' : '○ Stopped'}
+                        </span>
+                        <div className="form-check form-switch mb-0">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            checked={job.active}
+                            onChange={() => handleToggleActive(job._id, job.active)}
+                            style={{ cursor: 'pointer', width: '3rem', height: '1.5rem' }}
+                          />
+                        </div>
+                      </div>
+                      {job.stagesEnabled && (
+                        <span className="badge bg-primary rounded-pill px-3 py-2">
+                          Stage-Based Recruitment
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="row g-3 mb-3 pb-3 border-bottom">
@@ -172,20 +174,19 @@ const ManageJobs = () => {
                     <span>Deadline: {new Date(job.endDate).toLocaleDateString()}</span>
                   </div>
 
-                  {job.rejectionReason && (
-                    <div className="alert alert-danger mb-3">
-                      <strong>Rejection Reason:</strong> {job.rejectionReason}
-                    </div>
-                  )}
-
                   <div className="d-flex gap-2 flex-wrap">
-                    <Link to={`/employer/jobs/${job._id}/applicants`} className="btn btn-sm btn-primary">
+                    <Link to={`/employer/jobs/${job._id}/applicants`} className="btn btn-primary btn-sm px-3">
                       View Applicants
                     </Link>
-                    <button onClick={() => navigate(`/employer/jobs/${job._id}/edit`)} className="btn btn-sm btn-success">
+                    {job.stagesEnabled && (
+                      <Link to={`/employer/jobs/${job._id}/upload-results`} className="btn btn-success btn-sm px-3">
+                        📊 Upload Results
+                      </Link>
+                    )}
+                    <button onClick={() => navigate(`/employer/jobs/${job._id}/edit`)} className="btn btn-outline-secondary btn-sm px-3">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(job._id)} className="btn btn-sm btn-danger">
+                    <button onClick={() => handleDelete(job._id)} className="btn btn-outline-danger btn-sm px-3">
                       Delete
                     </button>
                   </div>
@@ -196,7 +197,7 @@ const ManageJobs = () => {
         )}
       </div>
 
-      <style>{`
+      <style jsx>{`
         .hover-lift {
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
@@ -206,12 +207,57 @@ const ManageJobs = () => {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
         }
 
-        .status-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          color: white;
-          font-size: 0.8rem;
+        .btn-primary {
+          background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+          border: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-success {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-success:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-outline-secondary {
+          border-color: #cbd5e1;
+          color: #64748b;
+          transition: all 0.2s ease;
+        }
+
+        .btn-outline-secondary:hover {
+          background-color: #f1f5f9;
+          border-color: #94a3b8;
+          color: #475569;
+          transform: translateY(-1px);
+        }
+
+        .btn-outline-danger {
+          border-color: #fecaca;
+          color: #dc2626;
+          transition: all 0.2s ease;
+        }
+
+        .btn-outline-danger:hover {
+          background-color: #fef2f2;
+          border-color: #f87171;
+          color: #b91c1c;
+          transform: translateY(-1px);
+        }
+
+        .badge {
           font-weight: 600;
+          font-size: 0.75rem;
         }
       `}</style>
     </div>
@@ -219,3 +265,4 @@ const ManageJobs = () => {
 };
 
 export default ManageJobs;
+

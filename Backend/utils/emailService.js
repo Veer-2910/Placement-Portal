@@ -145,4 +145,95 @@ async function sendOTP(email, otp) {
   }
 }
 
-module.exports = { sendOTP };
+/**
+ * Send interview details to student
+ * @param {string} email - Student email
+ * @param {object} details - Interview details (company, role, round, date, time, mode, location)
+ */
+async function sendInterviewDetails(email, details) {
+  const mailOptions = {
+    from: `"UGSF Placement Portal" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Interview Scheduled: ${details.company} - ${details.role}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; padding: 30px; text-align: center; }
+            .content { padding: 40px 30px; }
+            .details-box { background: #f8f9fa; border-left: 4px solid #0d6efd; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .detail-row { display: flex; margin-bottom: 10px; }
+            .detail-label { font-weight: bold; width: 120px; color: #495057; }
+            .detail-value { color: #212529; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; }
+            .btn { display: inline-block; padding: 10px 20px; background: #0d6efd; color: white; text-decoration: none; border-radius: 6px; margin-top: 20px; font-weight: 600; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Interview Scheduled</h1>
+              <p style="margin: 5px 0 0 0; opacity: 0.9;">${details.company}</p>
+            </div>
+            <div class="content">
+              <h2 style="color: #212529; margin-top: 0;">Good news!</h2>
+              <p style="color: #495057; line-height: 1.6;">
+                You have been shortlisted for the <strong>${details.role}</strong> position. 
+                Please find the interview details below:
+              </p>
+              
+              <div class="details-box">
+                <div class="detail-row">
+                  <div class="detail-label">Round:</div>
+                  <div class="detail-value">${details.round} - ${details.type}</div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Date & Time:</div>
+                  <div class="detail-value">${details.date} at ${details.time}</div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Mode:</div>
+                  <div class="detail-value">${details.mode}</div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Location/Link:</div>
+                  <div class="detail-value">${details.location}</div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Duration:</div>
+                  <div class="detail-value">${details.duration} minutes</div>
+                </div>
+              </div>
+
+              <p style="color: #6c757d; font-size: 14px;">
+                Please ensure you are available 10 minutes prior to the scheduled time. 
+                Good luck!
+              </p>
+              
+              <div style="text-align: center;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/student-dashboard/applications" class="btn">View Application Status</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>This is an automated email from UGSF Placement Portal.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Interview email sent:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("❌ Failed to send interview email:", error);
+    // Don't throw - we don't want to break the API response if email fails, just log it
+  }
+}
+
+module.exports = { sendOTP, sendInterviewDetails };

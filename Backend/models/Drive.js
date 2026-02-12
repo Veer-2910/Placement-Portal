@@ -61,7 +61,26 @@ const driveSchema = new mongoose.Schema(
       ref: "Faculty"
     },
     approvedAt: { type: Date },
-    rejectionReason: { type: String }
+    rejectionReason: { type: String },
+    
+    // Stage-Based Recruitment System (v2)
+    workflowVersion: {
+      type: String,
+      enum: ["v1", "v2"],
+      default: "v1" // v1 = legacy status-based, v2 = stage-based
+    },
+    stages: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DriveStage"
+    }],
+    currentActiveStage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DriveStage"
+    },
+    stagesEnabled: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );
@@ -75,5 +94,7 @@ driveSchema.index({ "eligibility.branches": 1 });
 driveSchema.index({ postedByEmployer: 1 });
 driveSchema.index({ approvalStatus: 1 });
 driveSchema.index({ approvalStatus: 1, active: 1 }); // Compound index for filtering
+driveSchema.index({ workflowVersion: 1 });
+driveSchema.index({ stagesEnabled: 1, active: 1 });
 
 module.exports = mongoose.model("Drive", driveSchema);

@@ -11,6 +11,7 @@ router.post("/", employerJobController.createJob);
 router.get("/", employerJobController.getMyJobs);
 router.get("/:id", employerJobController.getJobById);
 router.put("/:id", employerJobController.updateJob);
+router.patch("/:id/toggle-active", employerJobController.toggleDriveActive); // NEW: Manual toggle
 router.delete("/:id", employerJobController.deleteJob);
 
 // ==================== APPLICANT MANAGEMENT ====================

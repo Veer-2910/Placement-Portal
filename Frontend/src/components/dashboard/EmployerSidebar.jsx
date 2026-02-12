@@ -9,6 +9,7 @@ import {
   PersonCheck,
   Building,
   BoxArrowRight,
+  CalendarWeek,
 } from "react-bootstrap-icons";
 
 export default function EmployerSidebar({
@@ -37,6 +38,13 @@ export default function EmployerSidebar({
       label: "Browse Students",
       to: "/employer/students",
       icon: People,
+    },
+
+    {
+      key: "interviews",
+      label: "Interviews",
+      to: "/employer/interviews",
+      icon: CalendarWeek,
     },
 
     {

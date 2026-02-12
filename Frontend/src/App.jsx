@@ -39,6 +39,7 @@ const FacultyPlacementDrives = lazy(() =>
 const StudentPlacementDrives = lazy(() =>
   import("./pages/student/PlacementDrives.jsx")
 );
+const MyDriveResults = lazy(() => import("./pages/student/MyDriveResults.jsx"));
 const MyApplications = lazy(() => import("./pages/student/MyApplications.jsx"));
 const StudentManagement = lazy(() =>
   import("./pages/faculty/StudentManagement.jsx")
@@ -57,6 +58,9 @@ const ViewApplicants = lazy(() => import("./pages/employer/ViewApplicants.jsx"))
 const SubmitFeedback = lazy(() => import("./pages/employer/SubmitFeedback.jsx"));
 const CompanyProfile = lazy(() => import("./pages/employer/CompanyProfile.jsx"));
 const StudentDetails = lazy(() => import("./pages/employer/StudentDetails.jsx"));
+const InterviewScheduling = lazy(() => import("./pages/employer/InterviewScheduling.jsx"));
+const UploadAptitudeResults = lazy(() => import("./pages/employer/UploadAptitudeResults.jsx"));
+const PreviewResults = lazy(() => import("./pages/employer/PreviewResults.jsx"));
 
 // Admin Pages
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.jsx"));
@@ -148,6 +152,7 @@ function App() {
             path="drives"
             element={<StudentPlacementDrives user={user} />}
           />
+          <Route path="drive-results" element={<MyDriveResults user={user} />} />
           <Route path="jobs" element={<JobBoard user={user} />} />
         </Route>
         <Route path="/student" element={<LoginPage setUser={setUser} />} />
@@ -159,12 +164,16 @@ function App() {
           <Route index element={<EmployerHome />} />
           <Route path="jobs/new" element={<PostJob />} />
           <Route path="jobs" element={<ManageJobs />} />
+          <Route path="jobs/:jobId/edit" element={<PostJob />} />
           <Route path="jobs/:jobId/applicants" element={<ViewApplicants />} />
           <Route path="students" element={<BrowseStudents />} />
           <Route path="students/:studentId" element={<StudentDetails />} /> {/* ROUTE ADDED */}
+          <Route path="interviews" element={<InterviewScheduling />} />
           <Route path="applicants" element={<ViewApplicants />} />
           <Route path="feedback/:applicationId" element={<SubmitFeedback />} />
           <Route path="profile" element={<CompanyProfile />} />
+          <Route path="jobs/:driveId/upload-results" element={<UploadAptitudeResults />} />
+          <Route path="preview-results/:driveId" element={<PreviewResults />} />
         </Route>
         
         {/* Admin Routes */}

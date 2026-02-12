@@ -11,6 +11,11 @@ function FacultyRegistration() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
+  // OTP verification state
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [verificationToken, setVerificationToken] = useState("");
+  const [otp, setOtp] = useState("");
   const [form, setForm] = useState({
     employeeId: "",
     universityEmail: "",
@@ -21,6 +26,53 @@ function FacultyRegistration() {
   const handleInputChange = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  // Send OTP for email verification
+  const handleSendOTP = useCallback(async () => {
+    if (!form.employeeId.trim() || !form.universityEmail.trim()) {
+      setErrors(["Employee ID and University Email are required to send OTP"]);
+      return;
+    }
+    if (!/\.edu\.in$/i.test(form.universityEmail)) {
+      setErrors(["University Email must end with .edu.in"]);
+      return;
+    }
+    setLoading(true);
+    setErrors([]);
+    try {
+      await axios.post(`${BACKEND_URL}/api/faculty/send-activation-otp`, {
+        email: form.universityEmail,
+        employeeId: form.employeeId,
+      });
+      setOtpSent(true);
+    } catch (err) {
+      setErrors([err.response?.data?.message || "Failed to send OTP. Please try again."]);
+    } finally {
+      setLoading(false);
+    }
+  }, [form.employeeId, form.universityEmail]);
+
+  // Verify OTP
+  const handleVerifyOTP = useCallback(async () => {
+    if (!otp.trim()) {
+      setErrors(["Please enter the OTP"]);
+      return;
+    }
+    setLoading(true);
+    setErrors([]);
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/faculty/verify-activation-otp`, {
+        email: form.universityEmail,
+        otp: otp.trim(),
+      });
+      setOtpVerified(true);
+      setVerificationToken(response.data.verificationToken);
+    } catch (err) {
+      setErrors([err.response?.data?.message || "Invalid OTP. Please try again."]);
+    } finally {
+      setLoading(false);
+    }
+  }, [otp, form.universityEmail]);
 
   const validate = useCallback(() => {
     const newErrors = [];
@@ -63,6 +115,7 @@ function FacultyRegistration() {
           email: form.universityEmail,
           employeeId: form.employeeId,
           password: form.password,
+          verificationToken: verificationToken,
         });
 
         navigate("/", {
@@ -84,7 +137,7 @@ function FacultyRegistration() {
         setLoading(false);
       }
     },
-    [form, navigate, validate]
+    [form, navigate, validate, verificationToken]
   );
 
   const handleBackToLogin = useCallback(() => {
@@ -181,6 +234,7 @@ function FacultyRegistration() {
                         onChange={(e) =>
                           handleInputChange("employeeId", e.target.value)
                         }
+                        disabled={otpSent}
                       />
                     </div>
                   </div>
@@ -202,11 +256,54 @@ function FacultyRegistration() {
                         onChange={(e) =>
                           handleInputChange("universityEmail", e.target.value)
                         }
+                        disabled={otpSent}
                       />
+                      <button
+                        type="button"
+                        className="btn btn-success shadow-sm"
+                        onClick={handleSendOTP}
+                        disabled={loading || otpSent}
+                      >
+                        {loading ? "Sending..." : otpSent ? "OTP Sent ✓" : "Send OTP"}
+                      </button>
                     </div>
                   </div>
 
-                  <div className="col-md-6">
+                  {/* OTP Input - shown after OTP is sent */}
+                  {otpSent && !otpVerified && (
+                    <div className="col-12">
+                      <label className="form-label text-dark small fw-bold text-uppercase tracking-wide">
+                        Enter OTP
+                      </label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-white border-end-0 text-muted">
+                          <Shield size={18} />
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control border-start-0 ps-0 shadow-none"
+                          placeholder="Enter 6-digit OTP"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          maxLength={6}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-success shadow-sm"
+                          onClick={handleVerifyOTP}
+                          disabled={loading}
+                        >
+                          {loading ? "Verifying..." : "Verify OTP"}
+                        </button>
+                      </div>
+                      <small className="text-muted">Check your email for the OTP code</small>
+                    </div>
+                  )}
+
+                  {/* Password fields - shown only after OTP is verified */}
+                  {otpVerified && (
+                    <>
+                      <div className="col-md-6">
                     <label className="form-label text-dark small fw-bold text-uppercase tracking-wide">
                       New Password
                     </label>
@@ -292,6 +389,8 @@ function FacultyRegistration() {
                       </button>
                     </div>
                   </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="d-grid gap-3 d-md-flex justify-content-md-between align-items-center mt-5 pt-3 border-top">

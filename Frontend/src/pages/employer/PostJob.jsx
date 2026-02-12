@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
 import "../../App.css";
 
 const PostJob = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [useStages, setUseStages] = useState(true); // Default to v2 workflow
+  
   const [formData, setFormData] = useState({
     driveId: "",
     companyName: "",
@@ -30,9 +33,29 @@ const PostJob = () => {
     gender: "All"
   });
 
-  const [rounds, setRounds] = useState([
-    { step: "", date: "", details: "" }
+  const [stages, setStages] = useState([
+    {
+      stageName: "Aptitude Test",
+      stageType: "Aptitude Test",
+      description: "",
+      cutoffCriteria: { type: "percentage", value: 60, totalMarks: 100 },
+      scheduledDate: "",
+      location: "",
+      mode: "Offline",
+      instructions: ""
+    }
   ]);
+
+  const stageTypes = [
+    "Aptitude Test",
+    "Technical Interview",
+    "HR Interview",
+    "Group Discussion",
+    "Coding Round",
+    "Managerial Round",
+    "Final Selection",
+    "Other"
+  ];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -42,19 +65,35 @@ const PostJob = () => {
     });
   };
 
-  const handleRoundChange = (index, field, value) => {
-    const updatedRounds = [...rounds];
-    updatedRounds[index][field] = value;
-    setRounds(updatedRounds);
+  const handleStageChange = (index, field, value) => {
+    const updatedStages = [...stages];
+    if (field.includes(".")) {
+      const [parent, child] = field.split(".");
+      updatedStages[index][parent][child] = value;
+    } else {
+      updatedStages[index][field] = value;
+    }
+    setStages(updatedStages);
   };
 
-  const addRound = () => {
-    setRounds([...rounds, { step: "", date: "", details: "" }]);
+  const addStage = () => {
+    setStages([
+      ...stages,
+      {
+        stageName: "",
+        stageType: "Technical Interview",
+        description: "",
+        cutoffCriteria: { type: "none", value: 0, totalMarks: 100 },
+        scheduledDate: "",
+        location: "",
+        mode: "Offline",
+        instructions: ""
+      }
+    ]);
   };
 
-  const removeRound = (index) => {
-    const updatedRounds = rounds.filter((_, i) => i !== index);
-    setRounds(updatedRounds);
+  const removeStage = (index) => {
+    setStages(stages.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -89,17 +128,14 @@ const PostJob = () => {
         requirements: formData.requirements.split("\n").filter(r => r.trim()),
         requiredSkills: formData.requiredSkills.split(",").map(s => s.trim()).filter(s => s),
         preferredSkills: formData.preferredSkills.split(",").map(s => s.trim()).filter(s => s),
-        process: rounds.map(r => ({
-          step: r.step,
-          date: r.date,
-          details: r.details
-        })),
         eligibility: {
           cgpa: parseFloat(formData.minCgpa) || 0,
           branches: formData.branches.split(",").map(b => b.trim()).filter(b => b),
           backlogsAllowed: formData.backlogsAllowed,
           gender: formData.gender
-        }
+        },
+        stagesEnabled: useStages,
+        stages: useStages ? stages : undefined
       };
 
       const response = await axios.post(
@@ -120,548 +156,488 @@ const PostJob = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>Post New Job</h1>
-        <button onClick={() => navigate("/employer/dashboard")} className="btn-secondary">
+    <div className="container-fluid p-4">
+      <div className="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+          <h2 className="fw-bold text-dark mb-1">Post New Job</h2>
+          <p className="text-secondary mb-0">Create a new placement drive</p>
+        </div>
+        <button onClick={() => navigate("/employer")} className="btn btn-outline-secondary">
           Back to Dashboard
         </button>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="alert alert-danger d-flex align-items-center gap-2 mb-4">
+          <AlertCircle size={20} /> {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="job-form">
+      <form onSubmit={handleSubmit}>
+        {/* Workflow Selection */}
+        <div className="card border-0 shadow-sm rounded-4 mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-3">Recruitment Workflow</h5>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="useStages"
+                checked={useStages}
+                onChange={(e) => setUseStages(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="useStages">
+                <span className="fw-semibold">Enable Stage-Based Recruitment</span>
+                <div className="small text-secondary mt-1">
+                  {useStages
+                    ? "Stage-based workflow with automated result management and progression"
+                    : "Simple status-based workflow (legacy)"}
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
         {/* Basic Information */}
-        <section className="form-section">
-          <h2>Basic Information</h2>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label>Job ID *</label>
-              <input
-                type="text"
-                name="driveId"
-                value={formData.driveId}
-                onChange={handleChange}
-                required
-                placeholder="e.g., JOB2024001"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Company Name *</label>
-              <input
-                type="text"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                required
-                placeholder="Company name"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Job Title *</label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Software Engineer"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Job Role *</label>
-              <input
-                type="text"
-                name="jobRole"
-                value={formData.jobRole}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Full Stack Developer"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>CTC *</label>
-              <input
-                type="text"
-                name="ctc"
-                value={formData.ctc}
-                onChange={handleChange}
-                required
-                placeholder="e.g., 6-8 LPA"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Location *</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Bangalore, India"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Job Type *</label>
-              <select name="jobType" value={formData.jobType} onChange={handleChange}>
-                <option value="Full-time">Full-time</option>
-                <option value="Internship">Internship</option>
-                <option value="Part-time">Part-time</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Work Mode *</label>
-              <select name="workMode" value={formData.workMode} onChange={handleChange}>
-                <option value="Onsite">Onsite</option>
-                <option value="Remote">Remote</option>
-                <option value="Hybrid">Hybrid</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Application Start Date *</label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Application End Date *</label>
-              <input
-                type="date"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Contact Email</label>
-            <input
-              type="email"
-              name="contactEmail"
-              value={formData.contactEmail}
-              onChange={handleChange}
-              placeholder="recruitment@company.com"
-            />
-          </div>
-        </section>
-
-        {/* Job Description */}
-        <section className="form-section">
-          <h2>Job Description</h2>
-          
-          <div className="form-group">
-            <label>Job Description *</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              rows="6"
-              placeholder="Detailed job description, responsibilities, etc."
-            />
-          </div>
-
-          <div className="form-group">
-            <label>About Company</label>
-            <textarea
-              name="aboutCompany"
-              value={formData.aboutCompany}
-              onChange={handleChange}
-              rows="4"
-              placeholder="Brief about your company"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Requirements (one per line)</label>
-            <textarea
-              name="requirements"
-              value={formData.requirements}
-              onChange={handleChange}
-              rows="5"
-              placeholder="Bachelor's degree in Computer Science&#10;2+ years of experience&#10;Strong problem-solving skills"
-            />
-          </div>
-        </section>
-
-        {/* Skills */}
-        <section className="form-section">
-          <h2>Skills Required</h2>
-          
-          <div className="form-group">
-            <label>Required Skills (comma-separated) *</label>
-            <input
-              type="text"
-              name="requiredSkills"
-              value={formData.requiredSkills}
-              onChange={handleChange}
-              required
-              placeholder="JavaScript, React, Node.js"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Preferred Skills (comma-separated)</label>
-            <input
-              type="text"
-              name="preferredSkills"
-              value={formData.preferredSkills}
-              onChange={handleChange}
-              placeholder="TypeScript, AWS, Docker"
-            />
-          </div>
-        </section>
-
-        {/* Interview Process */}
-        <section className="form-section">
-          <div className="section-header">
-             <h2>Interview Process</h2>
-             <button type="button" onClick={addRound} className="btn-add-round">
-               + Add Round
-             </button>
-          </div>
-          
-          {rounds.map((round, index) => (
-            <div key={index} className="round-card">
-              <div className="round-header">
-                <h4>Round {index + 1}</h4>
-                {rounds.length > 1 && (
-                  <button type="button" onClick={() => removeRound(index)} className="btn-remove">
-                    Remove
-                  </button>
-                )}
+        <div className="card border-0 shadow-sm rounded-4 mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-4">Basic Information</h5>
+            
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Job ID *</label>
+                <input
+                  type="text"
+                  name="driveId"
+                  className="form-control"
+                  value={formData.driveId}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., JOB2024001"
+                />
               </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Round Name *</label>
-                  <input
-                    type="text"
-                    value={round.step}
-                    onChange={(e) => handleRoundChange(index, "step", e.target.value)}
-                    placeholder="e.g., Aptitude Test"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Date</label>
-                  <input
-                    type="date"
-                    value={round.date}
-                    onChange={(e) => handleRoundChange(index, "date", e.target.value)}
-                  />
-                </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Company Name *</label>
+                <input
+                  type="text"
+                  name="companyName"
+                  className="form-control"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  required
+                  placeholder="Company name"
+                />
               </div>
-              
-              <div className="form-group">
-                <label>Description / Venue</label>
-                <textarea
-                  value={round.details}
-                  onChange={(e) => handleRoundChange(index, "details", e.target.value)}
-                  placeholder="e.g., Online test via HackerRank"
-                  rows="2"
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Job Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  className="form-control"
+                  value={formData.title}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., Software Engineer"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Job Role *</label>
+                <input
+                  type="text"
+                  name="jobRole"
+                  className="form-control"
+                  value={formData.jobRole}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., Full Stack Developer"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">CTC *</label>
+                <input
+                  type="text"
+                  name="ctc"
+                  className="form-control"
+                  value={formData.ctc}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., 6-8 LPA"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Location *</label>
+                <input
+                  type="text"
+                  name="location"
+                  className="form-control"
+                  value={formData.location}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., Bangalore, India"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-semibold">Job Type *</label>
+                <select name="jobType" className="form-select" value={formData.jobType} onChange={handleChange}>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Part-time">Part-time</option>
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-semibold">Work Mode *</label>
+                <select name="workMode" className="form-select" value={formData.workMode} onChange={handleChange}>
+                  <option value="Onsite">Onsite</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-semibold">Contact Email</label>
+                <input
+                  type="email"
+                  name="contactEmail"
+                  className="form-control"
+                  value={formData.contactEmail}
+                  onChange={handleChange}
+                  placeholder="recruitment@company.com"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Application Start Date *</label>
+                <input
+                  type="date"
+                  name="startDate"
+                  className="form-control"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Application End Date *</label>
+                <input
+                  type="date"
+                  name="endDate"
+                  className="form-control"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  min={formData.startDate || new Date().toISOString().split('T')[0]}
+                  required
                 />
               </div>
             </div>
-          ))}
-        </section>
+          </div>
+        </div>
+
+        {/* Job Description */}
+        <div className="card border-0 shadow-sm rounded-4 mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-4">Job Description</h5>
+            
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Job Description *</label>
+              <textarea
+                name="description"
+                className="form-control"
+                value={formData.description}
+                onChange={handleChange}
+                required
+                rows="6"
+                placeholder="Detailed job description, responsibilities, etc."
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold">About Company</label>
+              <textarea
+                name="aboutCompany"
+                className="form-control"
+                value={formData.aboutCompany}
+                onChange={handleChange}
+                rows="4"
+                placeholder="Brief about your company"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label fw-semibold">Requirements (one per line)</label>
+              <textarea
+                name="requirements"
+                className="form-control"
+                value={formData.requirements}
+                onChange={handleChange}
+                rows="5"
+                placeholder="Bachelor's degree in Computer Science&#10;2+ years of experience&#10;Strong problem-solving skills"
+              />
+            </div>
+
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Required Skills (comma-separated) *</label>
+                <input
+                  type="text"
+                  name="requiredSkills"
+                  className="form-control"
+                  value={formData.requiredSkills}
+                  onChange={handleChange}
+                  required
+                  placeholder="JavaScript, React, Node.js"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Preferred Skills (comma-separated)</label>
+                <input
+                  type="text"
+                  name="preferredSkills"
+                  className="form-control"
+                  value={formData.preferredSkills}
+                  onChange={handleChange}
+                  placeholder="TypeScript, AWS, Docker"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recruitment Stages (if enabled) */}
+        {useStages && (
+          <div className="card border-0 shadow-sm rounded-4 mb-4">
+            <div className="card-body p-4">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h5 className="fw-bold mb-1">Recruitment Stages</h5>
+                  <p className="text-secondary small mb-0">Define the recruitment process stages</p>
+                </div>
+                <button type="button" onClick={addStage} className="btn btn-primary d-flex align-items-center gap-2">
+                  <Plus size={18} /> Add Stage
+                </button>
+              </div>
+
+              {stages.map((stage, index) => (
+                <div key={index} className="border rounded-3 p-3 mb-3 bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h6 className="fw-bold mb-0">Stage {index + 1}</h6>
+                    {stages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeStage(index)}
+                        className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                      >
+                        <Trash2 size={14} /> Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Stage Name *</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={stage.stageName}
+                        onChange={(e) => handleStageChange(index, "stageName", e.target.value)}
+                        required
+                        placeholder="e.g., Aptitude Test"
+                      />
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Stage Type *</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={stage.stageType}
+                        onChange={(e) => handleStageChange(index, "stageType", e.target.value)}
+                        required
+                      >
+                        {stageTypes.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label small fw-semibold">Description</label>
+                      <textarea
+                        className="form-control form-control-sm"
+                        value={stage.description}
+                        onChange={(e) => handleStageChange(index, "description", e.target.value)}
+                        rows="2"
+                        placeholder="Brief description of this stage"
+                      />
+                    </div>
+
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Cutoff Type</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={stage.cutoffCriteria.type}
+                        onChange={(e) => handleStageChange(index, "cutoffCriteria.type", e.target.value)}
+                      >
+                        <option value="none">No Cutoff</option>
+                        <option value="percentage">Percentage</option>
+                        <option value="marks">Marks</option>
+                      </select>
+                    </div>
+
+                    {stage.cutoffCriteria.type !== "none" && (
+                      <>
+                        <div className="col-md-4">
+                          <label className="form-label small fw-semibold">Cutoff Value</label>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            value={stage.cutoffCriteria.value}
+                            onChange={(e) => handleStageChange(index, "cutoffCriteria.value", parseFloat(e.target.value))}
+                            placeholder={stage.cutoffCriteria.type === "percentage" ? "60" : "100"}
+                          />
+                        </div>
+
+                        <div className="col-md-4">
+                          <label className="form-label small fw-semibold">Total Marks</label>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            value={stage.cutoffCriteria.totalMarks}
+                            onChange={(e) => handleStageChange(index, "cutoffCriteria.totalMarks", parseFloat(e.target.value))}
+                            placeholder="100"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Scheduled Date</label>
+                      <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        value={stage.scheduledDate}
+                        onChange={(e) => handleStageChange(index, "scheduledDate", e.target.value)}
+                      />
+                    </div>
+
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Location</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={stage.location}
+                        onChange={(e) => handleStageChange(index, "location", e.target.value)}
+                        placeholder="Venue or link"
+                      />
+                    </div>
+
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Mode</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={stage.mode}
+                        onChange={(e) => handleStageChange(index, "mode", e.target.value)}
+                      >
+                        <option value="Offline">Offline</option>
+                        <option value="Online">Online</option>
+                        <option value="Hybrid">Hybrid</option>
+                      </select>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label small fw-semibold">Instructions for Students</label>
+                      <textarea
+                        className="form-control form-control-sm"
+                        value={stage.instructions}
+                        onChange={(e) => handleStageChange(index, "instructions", e.target.value)}
+                        rows="2"
+                        placeholder="Any specific instructions for this stage"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Eligibility Criteria */}
-        <section className="form-section">
-          <h2>Eligibility Criteria</h2>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label>Minimum CGPA</label>
-              <input
-                type="number"
-                step="0.01"
-                name="minCgpa"
-                value={formData.minCgpa}
-                onChange={handleChange}
-                placeholder="e.g., 7.0"
-              />
+        <div className="card border-0 shadow-sm rounded-4 mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-4">Eligibility Criteria</h5>
+            
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="form-label fw-semibold">Minimum CGPA</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="minCgpa"
+                  className="form-control"
+                  value={formData.minCgpa}
+                  onChange={handleChange}
+                  placeholder="e.g., 7.0"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-semibold">Gender Preference</label>
+                <select name="gender" className="form-select" value={formData.gender} onChange={handleChange}>
+                  <option value="All">All</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <div className="form-check mt-4">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="backlogsAllowed"
+                    name="backlogsAllowed"
+                    checked={formData.backlogsAllowed}
+                    onChange={handleChange}
+                  />
+                  <label className="form-check-label" htmlFor="backlogsAllowed">
+                    Allow students with backlogs
+                  </label>
+                </div>
+              </div>
+
+              <div className="col-12">
+                <label className="form-label fw-semibold">Eligible Branches (comma-separated)</label>
+                <input
+                  type="text"
+                  name="branches"
+                  className="form-control"
+                  value={formData.branches}
+                  onChange={handleChange}
+                  placeholder="Computer Science, IT, Electronics"
+                />
+              </div>
             </div>
-
-            <div className="form-group">
-              <label>Gender Preference</label>
-              <select name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="All">All</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
           </div>
+        </div>
 
-          <div className="form-group">
-            <label>Eligible Branches (comma-separated)</label>
-            <input
-              type="text"
-              name="branches"
-              value={formData.branches}
-              onChange={handleChange}
-              placeholder="Computer Science, IT, Electronics"
-            />
-          </div>
-
-          <div className="form-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                name="backlogsAllowed"
-                checked={formData.backlogsAllowed}
-                onChange={handleChange}
-              />
-              <span>Allow students with backlogs</span>
-            </label>
-          </div>
-        </section>
-
-        <div className="form-actions">
-          <button type="button" onClick={() => navigate("/employer/dashboard")} className="btn-secondary">
+        {/* Form Actions */}
+        <div className="d-flex gap-3 justify-content-end">
+          <button type="button" onClick={() => navigate("/employer")} className="btn btn-outline-secondary px-4">
             Cancel
           </button>
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn btn-primary px-4" disabled={loading}>
             {loading ? "Posting..." : "Post Job"}
           </button>
         </div>
       </form>
-
-      <style jsx>{`
-        .page-container {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 2rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-        }
-
-        .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-        }
-
-        .page-header h1 {
-          color: #333;
-          margin: 0;
-        }
-
-        .job-form {
-          background: white;
-          border-radius: 12px;
-          padding: 2rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-section {
-          margin-bottom: 2.5rem;
-          padding-bottom: 2rem;
-          border-bottom: 1px solid #eee;
-        }
-
-        .form-section:last-of-type {
-          border-bottom: none;
-        }
-
-        .form-section h2 {
-          color: #0ea5e9;
-          margin-bottom: 1.5rem;
-          font-size: 1.3rem;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          margin-bottom: 1rem;
-        }
-
-        .form-group {
-          margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 0.5rem;
-          color: #333;
-          font-weight: 500;
-          font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-          width: 100%;
-          padding: 0.75rem;
-          border: 1px solid #ddd;
-          border-radius: 6px;
-          font-size: 0.95rem;
-          transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-          outline: none;
-          border-color: #0ea5e9;
-        }
-
-        .checkbox-group label {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          cursor: pointer;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-          width: auto;
-          cursor: pointer;
-        }
-
-        .error-message {
-          background: #fee;
-          color: #c33;
-          padding: 1rem;
-          border-radius: 6px;
-          margin-bottom: 1.5rem;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: flex-end;
-          margin-top: 2rem;
-        }
-
-        .btn-primary,
-        .btn-secondary {
-          padding: 0.75rem 2rem;
-          border: none;
-          border-radius: 6px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-          color: white;
-        }
-
-        .btn-secondary {
-          background: #e5e7eb;
-          color: #333;
-        }
-
-        .btn-primary:hover:not(:disabled),
-        .btn-secondary:hover {
-          transform: translateY(-2px);
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .section-header {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           margin-bottom: 1.5rem;
-        }
-
-        .section-header h2 {
-           margin: 0;
-        }
-
-        .btn-add-round {
-           background: #e0f2fe;
-           color: #0ea5e9;
-           border: none;
-           padding: 0.5rem 1rem;
-           border-radius: 6px;
-           font-weight: 600;
-           cursor: pointer;
-           transition: background 0.2s;
-        }
-
-        .btn-add-round:hover {
-           background: #bae6fd;
-        }
-
-        .round-card {
-           background: #f8fafc;
-           border: 1px solid #e2e8f0;
-           border-radius: 8px;
-           padding: 1.5rem;
-           margin-bottom: 1rem;
-        }
-
-        .round-header {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           margin-bottom: 1rem;
-        }
-
-        .round-header h4 {
-           margin: 0;
-           color: #475569;
-           font-size: 1rem;
-        }
-
-        .btn-remove {
-           color: #ef4444;
-           background: none;
-           border: none;
-           font-size: 0.9rem;
-           cursor: pointer;
-           font-weight: 500;
-        }
-
-        .btn-remove:hover {
-           text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-          .form-row {
-            grid-template-columns: 1fr;
-          }
-
-          .page-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-        }
-      `}</style>
     </div>
   );
 };

@@ -6,28 +6,45 @@ import {
   User,
   SlidersHorizontal,
   ChevronRight,
-  FileText
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  X,
+  Filter,
+  Users,
+  Hash,
 } from "lucide-react";
 import axios from "axios";
 import "../../App.css";
+
+const BACKEND_URL = "http://localhost:5000";
 
 const BrowseStudents = () => {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState({
     branch: "",
     minCgpa: "",
     maxCgpa: "",
     skills: "",
     status: "",
-    applicationStatus: "" // NEW: filter by application status
+    yearOfEnrollment: "",
+    applicationStatus: "",
   });
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
 
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  useEffect(() => {
+    const count = Object.values(filters).filter(v => v !== "").length;
+    setActiveFilterCount(count);
+  }, [filters]);
 
   const fetchStudents = async () => {
     try {
@@ -43,12 +60,13 @@ const BrowseStudents = () => {
       });
 
       const response = await axios.get(
-        `http://localhost:5000/api/employer/students?${params.toString()}`,
+        `${BACKEND_URL}/api/employer/students?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
         setStudents(response.data.students);
+        setTotalCount(response.data.total || response.data.students.length);
       }
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -76,6 +94,7 @@ const BrowseStudents = () => {
       maxCgpa: "",
       skills: "",
       status: "",
+      yearOfEnrollment: "",
       applicationStatus: ""
     });
     setLoading(true);
@@ -88,7 +107,7 @@ const BrowseStudents = () => {
       const params = status ? `?status=${status}` : "";
       
       const response = await axios.get(
-        `http://localhost:5000/api/employer/students/export${params}`,
+        `${BACKEND_URL}/api/employer/students/export${params}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob"
@@ -120,15 +139,14 @@ const BrowseStudents = () => {
       if (newStatus === "Shortlisted") endpoint = "shortlist";
       else if (newStatus === "Selected") endpoint = "select";
       else if (newStatus === "Rejected") endpoint = "reject";
-      else return; // Ignore Pending or invalid
+      else return;
 
       await axios.post(
-        `http://localhost:5000/api/employer/jobs/applications/${applicationId}/${endpoint}`,
+        `${BACKEND_URL}/api/employer/jobs/applications/${applicationId}/${endpoint}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Optimistic update
       setStudents(prev => prev.map(student => {
         if (student.applicationInfo?.applicationId === applicationId) {
           return { 
@@ -146,6 +164,23 @@ const BrowseStudents = () => {
       console.error("Status update error:", error);
       alert("Failed to update status");
     }
+  };
+
+  // Remove a single filter tag
+  const removeFilter = (key) => {
+    setFilters(prev => ({ ...prev, [key]: "" }));
+    setLoading(true);
+    setTimeout(() => fetchStudents(), 100);
+  };
+
+  const filterLabels = {
+    branch: "Branch",
+    minCgpa: "Min CGPA",
+    maxCgpa: "Max CGPA",
+    skills: "Skills",
+    status: "Student Status",
+    yearOfEnrollment: "Year",
+    applicationStatus: "App. Status",
   };
 
   if (loading) {
@@ -186,66 +221,197 @@ const BrowseStudents = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Advanced Filters */}
       <div className="filters-card">
-        <h3>Filter Students</h3>
-        <div className="filters-grid">
-          <div className="form-group">
-            <label>Branch</label>
-            <input
-              type="text"
-              name="branch"
-              value={filters.branch}
-              onChange={handleFilterChange}
-              placeholder="e.g., Computer Science"
-            />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showFilters ? "1rem" : 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <h3 style={{ margin: 0 }}>
+              <SlidersHorizontal size={18} style={{ marginRight: "8px", verticalAlign: "text-bottom" }} />
+              Advanced Filters
+            </h3>
+            {activeFilterCount > 0 && (
+              <span style={{
+                background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                color: "white",
+                borderRadius: "20px",
+                padding: "2px 10px",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+              }}>
+                {activeFilterCount} active
+              </span>
+            )}
           </div>
-
-          <div className="form-group">
-            <label>Min CGPA</label>
-            <input
-              type="number"
-              step="0.01"
-              name="minCgpa"
-              value={filters.minCgpa}
-              onChange={handleFilterChange}
-              placeholder="e.g., 7.0"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Max CGPA</label>
-            <input
-              type="number"
-              step="0.01"
-              name="maxCgpa"
-              value={filters.maxCgpa}
-              onChange={handleFilterChange}
-              placeholder="e.g., 10.0"
-            />
-          </div>
-
-
-
-          <div className="form-group">
-            <label>Application Status</label>
-            <select name="applicationStatus" value={filters.applicationStatus} onChange={handleFilterChange}>
-              <option value="">All Applicants</option>
-              <option value="Pending">Pending</option>
-              <option value="Shortlisted">Shortlisted</option>
-              <option value="Selected">Selected</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            style={{
+              background: "none", border: "1px solid #e2e8f0",
+              borderRadius: "8px", padding: "6px 12px",
+              cursor: "pointer", display: "flex", alignItems: "center", gap: "4px",
+              color: "#64748b", fontSize: "0.85rem",
+            }}
+          >
+            {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {showFilters ? "Collapse" : "Expand"}
+          </button>
         </div>
 
-        <div className="filter-actions">
-          <button onClick={handleSearch} className="btn-primary">
-            Search
+        {showFilters && (
+          <>
+            <div className="filters-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <div className="form-group">
+                <label>Branch</label>
+                <input
+                  type="text"
+                  name="branch"
+                  value={filters.branch}
+                  onChange={handleFilterChange}
+                  placeholder="e.g., Computer Science"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Min CGPA</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="minCgpa"
+                  value={filters.minCgpa}
+                  onChange={handleFilterChange}
+                  placeholder="e.g., 7.0"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Max CGPA</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="maxCgpa"
+                  value={filters.maxCgpa}
+                  onChange={handleFilterChange}
+                  placeholder="e.g., 10.0"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Skills</label>
+                <input
+                  type="text"
+                  name="skills"
+                  value={filters.skills}
+                  onChange={handleFilterChange}
+                  placeholder="e.g., React, Node.js"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Year of Enrollment</label>
+                <select name="yearOfEnrollment" value={filters.yearOfEnrollment} onChange={handleFilterChange}>
+                  <option value="">All Years</option>
+                  {[2020, 2021, 2022, 2023, 2024, 2025, 2026].map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Student Status</label>
+                <select name="status" value={filters.status} onChange={handleFilterChange}>
+                  <option value="">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Placed">Placed</option>
+                  <option value="Interning">Interning</option>
+                  <option value="Seeking Opportunities">Seeking Opportunities</option>
+                  <option value="Graduated">Graduated</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Application Status</label>
+                <select name="applicationStatus" value={filters.applicationStatus} onChange={handleFilterChange}>
+                  <option value="">All Applicants</option>
+                  <option value="Applied">Applied</option>
+                  <option value="Shortlisted">Shortlisted</option>
+                  <option value="Selected">Selected</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="filter-actions">
+              <button onClick={handleReset} className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <RotateCcw size={15} /> Reset
+              </button>
+              <button onClick={handleSearch} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Search size={15} /> Search
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Active Filter Tags */}
+      {activeFilterCount > 0 && (
+        <div style={{
+          display: "flex", flexWrap: "wrap", gap: "8px",
+          marginBottom: "1.5rem", alignItems: "center",
+        }}>
+          <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 500 }}>Active filters:</span>
+          {Object.entries(filters).map(([key, value]) =>
+            value ? (
+              <span
+                key={key}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "6px",
+                  background: "#eff6ff", color: "#2563eb",
+                  border: "1px solid #bfdbfe", borderRadius: "20px",
+                  padding: "4px 12px", fontSize: "0.8rem", fontWeight: 500,
+                }}
+              >
+                {filterLabels[key]}: <strong>{value}</strong>
+                <button
+                  onClick={() => removeFilter(key)}
+                  style={{
+                    background: "none", border: "none",
+                    cursor: "pointer", color: "#2563eb", padding: 0,
+                    display: "flex", alignItems: "center",
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </span>
+            ) : null
+          )}
+          <button
+            onClick={handleReset}
+            style={{
+              background: "none", border: "none",
+              color: "#dc2626", cursor: "pointer",
+              fontSize: "0.8rem", fontWeight: 600,
+              textDecoration: "underline",
+            }}
+          >
+            Clear all
           </button>
-          <button onClick={handleReset} className="btn-secondary">
-            Reset
-          </button>
+        </div>
+      )}
+
+      {/* Result Count */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: "1rem",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Users size={18} style={{ color: "#0ea5e9" }} />
+          <span style={{ fontWeight: 600, color: "#1f2937" }}>
+            {totalCount} student{totalCount !== 1 ? "s" : ""} found
+          </span>
+          {activeFilterCount > 0 && (
+            <span style={{ color: "#64748b", fontSize: "0.85rem" }}>
+              (filtered)
+            </span>
+          )}
         </div>
       </div>
 
@@ -266,6 +432,7 @@ const BrowseStudents = () => {
               <th className="py-3 ps-4 border-0 text-secondary small fw-bold text-uppercase">Candidate</th>
               <th className="py-3 border-0 text-secondary small fw-bold text-uppercase">Academic Info</th>
               <th className="py-3 border-0 text-secondary small fw-bold text-uppercase">CGPA</th>
+              <th className="py-3 border-0 text-secondary small fw-bold text-uppercase">Skills</th>
               <th className="py-3 border-0 text-secondary small fw-bold text-uppercase">Status</th>
               <th className="py-3 border-0 text-secondary small fw-bold text-uppercase">Application</th>
               <th className="py-3 pe-4 border-0 text-secondary small fw-bold text-uppercase text-end">Actions</th>
@@ -274,7 +441,7 @@ const BrowseStudents = () => {
           <tbody className="border-top-0">
             {students.length === 0 ? (
               <tr>
-                 <td colSpan="6" className="text-center py-5">
+                 <td colSpan="7" className="text-center py-5">
                     <div className="d-flex flex-column align-items-center">
                        <span className="display-6 text-muted mb-3 opacity-50">👥</span>
                        <h5 className="text-secondary fw-bold">No applicants found</h5>
@@ -291,7 +458,7 @@ const BrowseStudents = () => {
                       <div className="avatar me-3 flex-shrink-0">
                          {student.profilePicture ? (
                             <img 
-                              src={`http://localhost:5000${student.profilePicture}`} 
+                              src={`${BACKEND_URL}${student.profilePicture}`} 
                               alt={student.fullName} 
                               className="rounded-circle object-fit-cover shadow-sm"
                               style={{width: '40px', height: '40px'}}
@@ -330,6 +497,36 @@ const BrowseStudents = () => {
                     <span className={`badge rounded-pill fw-medium ${student.cgpa >= 8 ? 'bg-success-subtle text-success' : 'bg-light text-dark border'}`}>
                        {student.cgpa ? Number(student.cgpa).toFixed(2) : "N/A"}
                     </span>
+                  </td>
+
+                  {/* Skills */}
+                  <td className="py-3">
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", maxWidth: "200px" }}>
+                      {student.skills && student.skills.length > 0 ? (
+                        <>
+                          {student.skills.slice(0, 3).map((skill, i) => (
+                            <span key={i} style={{
+                              background: "#eff6ff", color: "#2563eb",
+                              borderRadius: "4px", padding: "2px 6px",
+                              fontSize: "0.7rem", fontWeight: 500,
+                            }}>
+                              {skill}
+                            </span>
+                          ))}
+                          {student.skills.length > 3 && (
+                            <span style={{
+                              background: "#f1f5f9", color: "#64748b",
+                              borderRadius: "4px", padding: "2px 6px",
+                              fontSize: "0.7rem", fontWeight: 500,
+                            }}>
+                              +{student.skills.length - 3}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: "#94a3b8", fontSize: "0.8rem" }}>—</span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Student Status */}
@@ -372,7 +569,7 @@ const BrowseStudents = () => {
                      <div className="d-flex justify-content-end gap-2">
                         {student.resume && (
                            <a 
-                             href={`http://localhost:5000${student.resume}`}
+                             href={`${BACKEND_URL}${student.resume}`}
                              target="_blank"
                              rel="noopener noreferrer"
                              className="btn btn-sm btn-light border text-secondary"
@@ -440,6 +637,11 @@ const BrowseStudents = () => {
           transition: transform 0.2s;
         }
 
+        .btn-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
         .dropdown {
           position: relative;
         }
@@ -452,6 +654,10 @@ const BrowseStudents = () => {
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+          background: #d1d5db;
         }
 
         .dropdown-menu {
@@ -492,7 +698,8 @@ const BrowseStudents = () => {
           padding: 1.5rem;
           border-radius: 12px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
+          border: 1px solid #e2e8f0;
         }
 
         .filters-card h3 {
@@ -503,7 +710,7 @@ const BrowseStudents = () => {
 
         .filters-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
           gap: 1rem;
           margin-bottom: 1.5rem;
         }
@@ -515,17 +722,25 @@ const BrowseStudents = () => {
         }
 
         .form-group label {
-          font-size: 0.9rem;
-          font-weight: 500;
-          color: #4b5563;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #374151;
         }
 
         .form-group input,
         .form-group select {
-          padding: 0.6rem;
+          padding: 0.6rem 0.75rem;
           border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          font-size: 0.95rem;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+          outline: none;
         }
 
         .filter-actions {

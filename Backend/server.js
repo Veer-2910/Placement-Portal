@@ -16,6 +16,8 @@ const employerJobRoutes = require("./routes/employerJobs");
 const employerStudentRoutes = require("./routes/employerStudents");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const adminManagementRoutes = require("./routes/adminManagementRoutes");
+const aptitudeResultRoutes = require("./routes/aptitudeResults");
+const stageManagementRoutes = require("./routes/stageManagement");
 
 const app = express();
 
@@ -59,6 +61,10 @@ app.use("/api/employer/students", employerStudentRoutes);
 // Admin Routes
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin", adminManagementRoutes);
+
+// Stage-Based Recruitment Routes
+app.use("/api/aptitude-results", aptitudeResultRoutes);
+app.use("/api/stages", stageManagementRoutes);
 
 app.use("/uploads", express.static("uploads"));
 

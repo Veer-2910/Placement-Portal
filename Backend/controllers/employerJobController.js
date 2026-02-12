@@ -1,6 +1,7 @@
 const Drive = require("../models/Drive");
 const Application = require("../models/Application");
 const Employer = require("../models/Employer");
+const DriveStage = require("../models/DriveStage");
 
 // ==================== JOB POSTING ====================
 
@@ -25,15 +26,25 @@ exports.createJob = async (req, res) => {
       requiredSkills,
       preferredSkills,
       jobType,
-      workMode
+      workMode,
+      // New stage-based fields
+      stagesEnabled,
+      stages
     } = req.body;
 
     // Validate required fields
-    if (!driveId || !companyName || !title || !startDate || !endDate || !location) {
+    if (!driveId || !title || !startDate || !endDate || !location) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields"
+        message: "Please provide all required fields (driveId, title, startDate, endDate, location)"
       });
+    }
+
+    // Get company name from employer profile if not provided
+    let finalCompanyName = companyName;
+    if (!finalCompanyName) {
+      const employer = await Employer.findById(req.employerId);
+      finalCompanyName = employer?.companyName || "Company";
     }
 
     // Check if driveId already exists
@@ -45,10 +56,18 @@ exports.createJob = async (req, res) => {
       });
     }
 
+    // If stages are enabled, validate stage data
+    if (stagesEnabled && (!stages || stages.length === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "Stage-based workflow requires at least one recruitment stage"
+      });
+    }
+
     // Create new job posting
     const drive = new Drive({
       driveId,
-      companyName,
+      companyName: finalCompanyName,
       title,
       jobRole,
       ctc,
@@ -66,11 +85,43 @@ exports.createJob = async (req, res) => {
       jobType,
       workMode,
       postedByEmployer: req.employerId,
-      approvalStatus: "Pending", // Requires faculty approval
-      active: false // Will be activated after approval
+      approvalStatus: "Approved", // Auto-approved
+      active: true, // Immediately active
+      workflowVersion: stagesEnabled ? "v2" : "v1",
+      stagesEnabled: stagesEnabled || false
     });
 
     await drive.save();
+
+    // If stages are enabled, create DriveStage documents
+    if (stagesEnabled && stages && stages.length > 0) {
+      const createdStages = [];
+      
+      for (let i = 0; i < stages.length; i++) {
+        const stageData = stages[i];
+        const driveStage = new DriveStage({
+          drive: drive._id,
+          stageName: stageData.stageName,
+          stageType: stageData.stageType,
+          description: stageData.description,
+          cutoffCriteria: stageData.cutoffCriteria || { type: "none" },
+          scheduledDate: stageData.scheduledDate,
+          location: stageData.location,
+          mode: stageData.mode || "Offline",
+          isActive: i === 0, // First stage is active by default
+          order: i + 1,
+          instructions: stageData.instructions
+        });
+        
+        await driveStage.save();
+        createdStages.push(driveStage._id);
+      }
+      
+      // Update drive with stage references
+      drive.stages = createdStages;
+      drive.currentActiveStage = createdStages[0]; // Set first stage as active
+      await drive.save();
+    }
 
     // Update employer stats
     await Employer.findByIdAndUpdate(req.employerId, {
@@ -79,14 +130,17 @@ exports.createJob = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Job posted successfully! Waiting for admin approval.",
+      message: stagesEnabled 
+        ? "Stage-based drive posted successfully and is now live!"
+        : "Job posted successfully and is now live!",
       drive
     });
   } catch (error) {
     console.error("Create job error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create job posting"
+      message: "Failed to create job posting",
+      error: error.message
     });
   }
 };
@@ -437,6 +491,52 @@ exports.selectApplicant = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to select applicant"
+    });
+  }
+};
+
+module.exports = exports;
+// Toggle drive active status (manual start/stop)
+exports.toggleDriveActive = async (req, res) => {
+  try {
+    const drive = await Drive.findById(req.params.id);
+    
+    if (!drive) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Drive not found" 
+      });
+    }
+    
+    // Check if the employer owns this drive
+    if (drive.postedByEmployer.toString() !== req.employerId) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Access denied. You can only toggle your own drives." 
+      });
+    }
+    
+    // Toggle the active status
+    drive.active = !drive.active;
+    drive.manuallyStopped = !drive.active; // Track if manually stopped
+    await drive.save();
+    
+    res.json({ 
+      success: true,
+      message: `Drive ${drive.active ? 'activated' : 'deactivated'} successfully`,
+      active: drive.active,
+      drive: {
+        _id: drive._id,
+        title: drive.title,
+        active: drive.active
+      }
+    });
+  } catch (error) {
+    console.error("Error toggling drive:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error",
+      error: error.message 
     });
   }
 };

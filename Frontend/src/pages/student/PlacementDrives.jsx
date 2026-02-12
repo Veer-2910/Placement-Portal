@@ -631,29 +631,47 @@ export default function StudentPlacementDrives({ user }) {
                         </div>
 
                         <form onSubmit={handleApply}>
+                          {/* CGPA Eligibility Warning */}
+                          {selectedDrive?.criteria?.cgpa && parseFloat(applicationForm.cgpaAtTime) < parseFloat(selectedDrive.criteria.cgpa) && (
+                            <div className="alert alert-danger d-flex align-items-start gap-3 mb-4" role="alert">
+                              <AlertCircle size={24} className="flex-shrink-0 mt-1" />
+                              <div>
+                                <h6 className="alert-heading fw-bold mb-1">CGPA Requirement Not Met</h6>
+                                <p className="mb-0">Your CGPA ({applicationForm.cgpaAtTime}) is below the minimum requirement ({selectedDrive.criteria.cgpa}). You are not eligible to apply for this drive.</p>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="bg-white p-4 rounded-4 shadow-sm border border-light">
                             <div className="row g-4">
                               <div className="col-md-6">
                                 <div className="form-group-modern">
                                   <label className="form-label-modern">
-                                    Current CGPA{" "}
-                                    <span className="text-danger">*</span>
+                                    Your CGPA{" "}
+                                    <span className="text-muted small">(From Profile)</span>
                                   </label>
                                   <input
                                     type="number"
                                     step="0.01"
                                     value={applicationForm.cgpaAtTime}
-                                    onChange={(e) =>
-                                      setApplicationForm({
-                                        ...applicationForm,
-                                        cgpaAtTime: e.target.value,
-                                      })
-                                    }
-                                    className="form-control-modern"
-                                    required
+                                    className="form-control-modern bg-light"
+                                    readOnly
+                                    disabled
                                     min="0"
                                     max="10"
                                   />
+                                  {selectedDrive?.criteria?.cgpa && (
+                                    <small className={`mt-1 d-block ${
+                                      parseFloat(applicationForm.cgpaAtTime) >= parseFloat(selectedDrive.criteria.cgpa)
+                                        ? 'text-success'
+                                        : 'text-danger'
+                                    }`}>
+                                      {parseFloat(applicationForm.cgpaAtTime) >= parseFloat(selectedDrive.criteria.cgpa)
+                                        ? `✓ Eligible (Required: ${selectedDrive.criteria.cgpa})`
+                                        : `✗ Not Eligible (Required: ${selectedDrive.criteria.cgpa})`
+                                      }
+                                    </small>
+                                  )}
                                 </div>
                               </div>
                               <div className="col-md-6">
@@ -826,8 +844,9 @@ export default function StudentPlacementDrives({ user }) {
                             </button>
                             <button
                               type="submit"
-                              disabled={applying}
+                              disabled={applying || (selectedDrive?.criteria?.cgpa && parseFloat(applicationForm.cgpaAtTime) < parseFloat(selectedDrive.criteria.cgpa))}
                               className="btn btn-primary px-5 py-2 fw-bold shadow-lg rounded-pill d-flex align-items-center gap-2 gradient-btn order-2"
+                              title={selectedDrive?.criteria?.cgpa && parseFloat(applicationForm.cgpaAtTime) < parseFloat(selectedDrive.criteria.cgpa) ? 'You do not meet the CGPA requirement' : ''}
                             >
                               {applying ? (
                                 <>

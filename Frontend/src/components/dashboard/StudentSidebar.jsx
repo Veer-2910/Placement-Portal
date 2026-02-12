@@ -30,6 +30,12 @@ export default function StudentSidebar({
       icon: Folder,
     },
     {
+      key: "drive-results",
+      label: "Drive Results",
+      to: "/student-dashboard/drive-results",
+      icon: List,
+    },
+    {
       key: "resources",
       label: "Resources",
       to: "/student-dashboard/resources",

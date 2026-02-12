@@ -29,30 +29,18 @@ export default function JobBoard({ user }) {
   const [applicationNotes, setApplicationNotes] = useState("");
   const [bookmarks, setBookmarks] = useState([]);
   const [isBookmarking, setIsBookmarking] = useState(false);
-  const [matchedJobs, setMatchedJobs] = useState([]);
-  const [sortBy, setSortBy] = useState("match"); // match, latest, salary
+  const [sortBy, setSortBy] = useState("latest"); // latest only
 
   const fetchJobs = async () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("token");
-      const [jobsRes, profileRes, matchedRes] = await Promise.all([
+      const [jobsRes, profileRes] = await Promise.all([
         axios.get("http://localhost:5000/api/jobs", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`http://localhost:5000/api/auth/student/profile/${user._id}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("http://localhost:5000/api/students/matched-jobs", { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] }))
+        axios.get(`http://localhost:5000/api/auth/student/profile/${user._id}`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       
-      // Merge jobs with match scores
-      const jobsWithScores = jobsRes.data.map(job => {
-        const matchedJob = matchedRes.data.find(m => m._id === job._id);
-        return {
-          ...job,
-          matchScore: matchedJob?.matchScore || 0
-        };
-      });
-      
-      setJobs(jobsWithScores);
-      setMatchedJobs(matchedRes.data);
+      setJobs(jobsRes.data);
       setBookmarks(profileRes.data.bookmarkedJobs || []);
     } catch (err) {
       setError("Failed to load jobs");
@@ -109,9 +97,7 @@ export default function JobBoard({ user }) {
       job.company.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      if (sortBy === "match") {
-        return (b.matchScore || 0) - (a.matchScore || 0);
-      } else if (sortBy === "latest") {
+      if (sortBy === "latest") {
         return new Date(b.createdAt) - new Date(a.createdAt);
       }
       return 0;
@@ -161,7 +147,6 @@ export default function JobBoard({ user }) {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                 >
-                  <option value="match">Sort by: Best Match</option>
                   <option value="latest">Sort by: Latest</option>
                 </select>
               </div>

@@ -11,7 +11,7 @@ export default function DashboardContent({ user }) {
   const [profile, setProfile] = useState(user || null);
   const [appsCount, setAppsCount] = useState(0);
   const [activeDrives, setActiveDrives] = useState(0);
-  const [matchedJobs, setMatchedJobs] = useState([]);
+
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -72,16 +72,7 @@ export default function DashboardContent({ user }) {
         });
         setActiveDrives(drivesRes.data.length);
 
-        // Fetch Matched Jobs (Smart Matching)
-        try {
-          const matchedRes = await axios.get("http://localhost:5000/api/students/matched-jobs", {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          setMatchedJobs(matchedRes.data.slice(0, 3)); // Top 3 matches for dashboard
-        } catch (matchErr) {
-          console.error("Matched jobs error:", matchErr);
-          // Not critical, continue without matches
-        }
+
 
       } catch (err) {
         console.error("Dashboard data load failed:", err);
@@ -225,50 +216,7 @@ export default function DashboardContent({ user }) {
             </div>
         </div>
 
-        {/* Recommended Jobs (Smart Matching) */}
-        {matchedJobs.length > 0 && (
-          <div className="col-12 mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                <Star size={20} className="text-warning" fill="currentColor" /> 
-                Recommended For You
-              </h5>
-              <Link to="/student-dashboard/job-board" className="text-primary small fw-medium text-decoration-none">
-                View All →
-              </Link>
-            </div>
-            <div className="row g-4">
-              {matchedJobs.map((job, index) => (
-                <div key={index} className="col-md-4">
-                  <div className="card border-0 shadow-sm h-100 hover-lift transition-all">
-                    <div className="card-body p-4">
-                      {/* Match Score Badge */}
-                      <div className="d-flex justify-content-between align-items-start mb-3">
-                        <div className="bg-primary-subtle text-primary rounded-circle p-2" style={{width: 40, height: 40}}>
-                          <Briefcase size={24} />
-                        </div>
-                        <div className="badge bg-success fw-bold px-3 py-2 rounded-pill">
-                          {job.matchScore}% Match
-                        </div>
-                      </div>
-                      <h6 className="fw-bold text-dark mb-2">{job.companyName}</h6>
-                      <p className="text-secondary small mb-1">{job.jobRole || job.title}</p>
-                      <p className="text-muted small mb-3">📍 {job.location}</p>
-                      <div className="d-flex gap-2 flex-wrap mb-3">
-                        {(job.requiredSkills || []).slice(0, 2).map((skill, i) => (
-                          <span key={i} className="badge bg-light text-dark border">{skill}</span>
-                        ))}
-                      </div>
-                      <Link to="/student-dashboard/drives" className="btn btn-outline-primary btn-sm w-100">
-                        View Details
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
 
       </div>

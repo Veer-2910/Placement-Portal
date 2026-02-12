@@ -158,12 +158,30 @@ router.post("/apply", authMiddleware, async (req, res) => {
         .json({ message: "You have already applied for this drive" });
     }
 
+    // CGPA VALIDATION: Get student's actual CGPA from profile
+    const student = await Student.findById(req.user.id);
+    if (!student) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    const studentCGPA = parseFloat(student.cgpa) || 0;
+    const requiredCGPA = parseFloat(drive.criteria?.cgpa || drive.eligibility?.cgpa || 0);
+
+    // Check if student meets CGPA requirement
+    if (studentCGPA < requiredCGPA) {
+      return res.status(403).json({
+        message: `Your CGPA (${studentCGPA}) does not meet the minimum requirement (${requiredCGPA})`,
+        studentCGPA,
+        requiredCGPA
+      });
+    }
+
     const application = new Application({
       drive: driveId,
       student: req.user.id,
       resume,
       notes,
-      cgpaAtTime,
+      cgpaAtTime: studentCGPA, // Use CGPA from profile, not user input
       backlogsCount,
       skills,
       phoneNumber,

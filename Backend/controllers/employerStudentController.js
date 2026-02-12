@@ -189,7 +189,9 @@ exports.scheduleInterview = async (req, res) => {
     const { applicationId } = req.params;
     const { round, type, scheduledDate, duration, mode, location, interviewers } = req.body;
 
-    const application = await Application.findById(applicationId).populate("drive");
+    const application = await Application.findById(applicationId)
+      .populate("drive")
+      .populate("student", "fullName universityEmail"); // Populate student for email
 
     if (!application) {
       return res.status(404).json({
@@ -220,9 +222,28 @@ exports.scheduleInterview = async (req, res) => {
 
     await application.save();
 
+    // Send email notification
+    if (application.student && application.student.universityEmail) {
+       const interviewDetails = {
+         company: application.drive.companyName || "Company",
+         role: application.drive.title || "Job Role",
+         round: round || 1,
+         type: type || "Interview",
+         date: new Date(scheduledDate).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+         time: new Date(scheduledDate).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' }),
+         mode: mode || "Online",
+         location: location || "TBD",
+         duration: duration || 60
+       };
+       
+       // Send email asynchronously (don't block response)
+       const { sendInterviewDetails } = require("../utils/emailService");
+       sendInterviewDetails(application.student.universityEmail, interviewDetails).catch(err => console.error("Email send failed:", err));
+    }
+
     res.json({
       success: true,
-      message: "Interview scheduled successfully",
+      message: "Interview scheduled successfully and notification sent",
       application
     });
   } catch (error) {
@@ -514,6 +535,76 @@ exports.exportApplicants = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to export applicants"
+    });
+  }
+};
+
+// ==================== GET ALL INTERVIEWS ====================
+
+// Get all interviews across all employer's drives
+exports.getAllInterviews = async (req, res) => {
+  try {
+    // 1. Get all drives posted by this employer
+    const employerDrives = await Drive.find({ postedByEmployer: req.employerId }).select("_id title companyName");
+    const driveIds = employerDrives.map(d => d._id);
+
+    if (driveIds.length === 0) {
+      return res.json({
+        success: true,
+        interviews: []
+      });
+    }
+
+    // 2. Get all applications that have interviews
+    const applications = await Application.find({
+      drive: { $in: driveIds },
+      "interviews.0": { $exists: true }
+    })
+      .populate("student", "fullName universityEmail branch cgpa profilePicture enrollmentNumber")
+      .populate("drive", "title companyName")
+      .sort({ updatedAt: -1 });
+
+    // 3. Flatten interviews with their application/student context
+    const allInterviews = [];
+    applications.forEach(app => {
+      app.interviews.forEach(interview => {
+        allInterviews.push({
+          interviewId: interview._id,
+          applicationId: app._id,
+          applicationStatus: app.status,
+          round: interview.round,
+          type: interview.type,
+          scheduledDate: interview.scheduledDate,
+          duration: interview.duration,
+          mode: interview.mode,
+          location: interview.location,
+          interviewers: interview.interviewers,
+          status: interview.status,
+          feedback: interview.feedback,
+          result: interview.result,
+          student: app.student,
+          drive: app.drive,
+        });
+      });
+    });
+
+    // Sort by scheduled date (upcoming first)
+    allInterviews.sort((a, b) => {
+      if (!a.scheduledDate) return 1;
+      if (!b.scheduledDate) return -1;
+      return new Date(a.scheduledDate) - new Date(b.scheduledDate);
+    });
+
+    res.json({
+      success: true,
+      count: allInterviews.length,
+      interviews: allInterviews
+    });
+  } catch (error) {
+    console.error("Get all interviews error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch interviews"
     });
   }
 };

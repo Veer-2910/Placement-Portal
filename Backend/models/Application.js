@@ -99,6 +99,17 @@ const applicationSchema = new mongoose.Schema(
       result: { type: String, enum: ["Passed", "Failed", "Pending"] }
     }],
     
+    // Stage-Based Recruitment System (v2)
+    stageProgressRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StageProgress"
+    },
+    driveVersion: {
+      type: String,
+      enum: ["v1", "v2"],
+      default: "v1"
+    },
+    
     // Test/Assessment Results
     testResults: [{
       testName: { type: String },
